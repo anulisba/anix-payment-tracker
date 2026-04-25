@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 
-const API_BASE = "http://localhost:5000/api";
+const API_BASE = "https://anix-payment-tracker.onrender.com/api";
 
 // ─── API helpers ──────────────────────────────────────────────
 const api = {
