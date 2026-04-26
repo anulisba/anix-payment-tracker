@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 
+
 const API_BASE = "https://anix-payment-tracker.onrender.com/api";
 
 // ─── API helpers ──────────────────────────────────────────────
@@ -205,7 +206,7 @@ function HomeScreen({ stats, recentGigs, onGigTap, onViewAll }) {
   return (
     <div style={{ padding: "24px 16px 0" }}>
       <div style={{ marginBottom: 20 }}>
-        <p style={{ fontSize: 13, color: "#666" }}>Good evening 👋</p>
+        <p style={{ fontSize: 13, color: "#666" }}>Welcome Back Anix👋</p>
         <h1 style={{ fontSize: 24, fontWeight: 700, marginTop: 2 }}>My Gigs</h1>
       </div>
 
