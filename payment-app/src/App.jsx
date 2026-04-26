@@ -320,13 +320,13 @@ function GigCard({ gig, onTap }) {
 
       <div style={{ flex: 1, minWidth: 0 }}>
         <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 3 }}>
-          <p style={{ fontSize: 14, fontWeight: 600, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{gig.client}</p>
+          <p style={{ fontSize: 14, fontWeight: 600, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", color: "white" }}>{gig.client}</p>
           <span style={{ width: 7, height: 7, borderRadius: 4, background: gig.confirmed ? "#5bb974" : "#a78bfa", flexShrink: 0 }} />
         </div>
         <p style={{ fontSize: 12, color: "#555" }}>{new Date(gig.date).toLocaleDateString("en-IN", { day: "numeric", month: "short" })} · {gig.type}</p>
       </div>
       <div style={{ textAlign: "right", flexShrink: 0 }}>
-        <p style={{ fontSize: 14, fontWeight: 600, marginBottom: 5 }}>{fmt(gig.fee)}</p>
+        <p style={{ fontSize: 14, fontWeight: 600, marginBottom: 5, color: "white" }}>{fmt(gig.fee)}</p>
         <span style={{ fontSize: 11, color: badge.color, background: badge.bg, padding: "3px 8px", borderRadius: 6, fontWeight: 600 }}>{badge.label}</span>
       </div>
     </button>
@@ -355,7 +355,7 @@ function GigDetail({ gig, onBack, onEdit, onDelete, onToggleConfirm }) {
       <div style={{ display: "flex", alignItems: "center", gap: 14, marginBottom: 20 }}>
 
         <div>
-          <h1 style={{ fontSize: 20, fontWeight: 700 }}>{gig.client}</h1>
+          <h1 style={{ fontSize: 20, fontWeight: 700, color: "white" }}>{gig.client}</h1>
           <p style={{ fontSize: 12, color: "#666", marginTop: 4 }}>{gig.type} · {new Date(gig.date).toLocaleDateString("en-IN", { day: "numeric", month: "long", year: "numeric" })}</p>
         </div>
       </div>
@@ -446,7 +446,7 @@ function GigForm({ gig, onSave, onBack }) {
       <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
         <div>
           <label style={lbl}>Client / Event</label>
-          <input style={inp} value={form.client} onChange={(e) => set("client", e.target.value)} placeholder="e.g. Priya & Rajan Wedding" />
+          <input style={inp} value={form.client} onChange={(e) => set("client", e.target.value)} placeholder="Event Name" />
         </div>
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
           <div>
