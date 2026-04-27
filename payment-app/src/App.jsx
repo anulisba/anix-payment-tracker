@@ -1,17 +1,17 @@
 import { useState, useEffect, useCallback } from "react";
 
 
-const API_BASE = "/api";
+const API_BASE = "https://anix-payment-tracker.onrender.com/api";
 
 // ─── API helpers ──────────────────────────────────────────────
 const api = {
   get: (path) => fetch(`${API_BASE}${path}`).then((r) => r.json()),
   post: (path, body) => fetch(`${API_BASE}${path}`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) }).then((r) => r.json()),
   put: (path, body) => fetch(`${API_BASE}${path}`, { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) }).then((r) => r.json()),
-  // PATCH for confirm — no body needed, id is in the URL
   patch: (path) => fetch(`${API_BASE}${path}`, { method: "PATCH" }).then((r) => r.json()),
   del: (path) => fetch(`${API_BASE}${path}`, { method: "DELETE" }).then((r) => r.json()),
 };
+
 const GIG_TYPES = ["Wedding", "Club Night", "Private Party", "Festival", "Corporate", "Acoustic Set", "Birthday", "Other"];
 
 function payStatus(g) {
@@ -131,7 +131,7 @@ export default function App() {
 
   async function toggleConfirm(id) {
     try {
-      const res = await api.patch(`/gigs/${id}`);
+      const res = await api.patch(`/gigs/${id}/confirm`);
       if (!res.success) { showToast(res.message, "error"); return; }
       showToast(res.data.confirmed ? "Marked as confirmed!" : "Marked as unconfirmed");
       await refresh();
