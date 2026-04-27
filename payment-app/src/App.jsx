@@ -131,7 +131,7 @@ export default function App() {
 
   async function toggleConfirm(id) {
     try {
-      const res = await api.patch(`/gigs/${id}/confirm`);
+      const res = await api.patch(`/gigs/${id}`);
       if (!res.success) { showToast(res.message, "error"); return; }
       showToast(res.data.confirmed ? "Marked as confirmed!" : "Marked as unconfirmed");
       await refresh();
