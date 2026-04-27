@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 
 
-const API_BASE = "https://anix-payment-tracker.onrender.com/api";
+const API_BASE = "/api";
 
 // ─── API helpers ──────────────────────────────────────────────
 const api = {
