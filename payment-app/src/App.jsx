@@ -8,10 +8,10 @@ const api = {
   get: (path) => fetch(`${API_BASE}${path}`).then((r) => r.json()),
   post: (path, body) => fetch(`${API_BASE}${path}`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) }).then((r) => r.json()),
   put: (path, body) => fetch(`${API_BASE}${path}`, { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) }).then((r) => r.json()),
+  // PATCH for confirm — no body needed, id is in the URL
   patch: (path) => fetch(`${API_BASE}${path}`, { method: "PATCH" }).then((r) => r.json()),
   del: (path) => fetch(`${API_BASE}${path}`, { method: "DELETE" }).then((r) => r.json()),
 };
-
 const GIG_TYPES = ["Wedding", "Club Night", "Private Party", "Festival", "Corporate", "Acoustic Set", "Birthday", "Other"];
 
 function payStatus(g) {
