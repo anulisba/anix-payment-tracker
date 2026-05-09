@@ -1,6 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
 
-// ─── Single endpoint, all ops via ?action= ────────────────────
 const API = "/api/handler";
 
 const api = {
@@ -13,6 +12,17 @@ const api = {
 };
 
 const GIG_TYPES = ["Wedding", "Club Night", "Private Party", "Festival", "Corporate", "Acoustic Set", "Birthday", "Other"];
+
+const TYPE_COLORS = {
+  "Wedding": { bg: "#1a1f3a", border: "#3b4a8a", text: "#6b8cff" },
+  "Club Night": { bg: "#1f1a2e", border: "#5b3a8a", text: "#b06bff" },
+  "Private Party": { bg: "#1a2e1f", border: "#2a6b3a", text: "#5bb974" },
+  "Festival": { bg: "#2e1f1a", border: "#8a4a2a", text: "#e07b3a" },
+  "Corporate": { bg: "#1a2a2e", border: "#2a6b7a", text: "#4bbfd4" },
+  "Acoustic Set": { bg: "#2e2a1a", border: "#8a762a", text: "#d4b94b" },
+  "Birthday": { bg: "#2e1a1f", border: "#8a2a4a", text: "#e05c7a" },
+  "Other": { bg: "#212121", border: "#444", text: "#888" },
+};
 
 function payStatus(g) {
   if (g.paid >= g.fee) return "paid";
@@ -74,9 +84,7 @@ export default function App() {
 
   async function saveGig(form) {
     try {
-      const res = form._id
-        ? await api.updateGig(form._id, form)
-        : await api.createGig(form);
+      const res = form._id ? await api.updateGig(form._id, form) : await api.createGig(form);
       if (!res.success) { showToast(res.message, "error"); return; }
       showToast(form._id ? "Gig updated!" : "Gig added!");
       await refresh();
@@ -104,6 +112,10 @@ export default function App() {
     } catch { showToast("Failed to update", "error"); }
   }
 
+  function openAddWithDate(dateStr) {
+    setScreen({ type: "form", gig: { date: dateStr } });
+  }
+
   return (
     <div style={{ minHeight: "100vh", background: "#1a1a1a", color: "#e8e8e6", fontFamily: "-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif", fontSize: 14 }}>
       <style>{`
@@ -118,6 +130,7 @@ export default function App() {
         @keyframes slideUp{from{transform:translateY(24px);opacity:0;}to{transform:translateY(0);opacity:1;}}
         .fade-in{animation:slideUp .22s ease;}
         .chip-scroll{display:flex;gap:8px;overflow-x:auto;padding-bottom:2px;}
+        .cal-cell:hover { border-color: #c98a3a !important; }
       `}</style>
 
       {toast && <Toast message={toast.message} type={toast.type} />}
@@ -137,20 +150,27 @@ export default function App() {
         {loading ? <Spinner /> : <>
           {tab === "home" && <HomeScreen stats={stats} recentGigs={[...gigs].sort((a, b) => new Date(b.date) - new Date(a.date)).slice(0, 5)} onGigTap={g => setScreen({ type: "detail", gig: g })} onViewAll={() => setTab("gigs")} />}
           {tab === "gigs" && <GigsScreen gigs={sortedGigs} months={months} filterMonth={filterMonth} setFilterMonth={setFilterMonth} onGigTap={g => setScreen({ type: "detail", gig: g })} />}
+          {tab === "calendar" && <CalendarScreen gigs={gigs} onGigTap={g => setScreen({ type: "detail", gig: g })} onAddGig={openAddWithDate} />}
           {tab === "stats" && <StatsScreen stats={stats} />}
         </>}
       </div>
 
-      {/* Bottom nav */}
-      <div style={{ position: "fixed", bottom: 0, left: 0, right: 0, background: "#111", borderTop: "1px solid #252525", display: "flex", alignItems: "center", padding: "0 8px", zIndex: 50, height: 64 }}>
-        {[{ id: "home", label: "Home", icon: "⊞" }, { id: "gigs", label: "Gigs", icon: "≡" }, { id: "stats", label: "Stats", icon: "↗" }].map(({ id, label, icon }) => (
-          <button key={id} className="tap" onClick={() => setTab(id)} style={{ flex: 1, background: "none", border: "none", display: "flex", flexDirection: "column", alignItems: "center", gap: 3, padding: "8px 0", color: tab === id ? "#c98a3a" : "#555" }}>
-            <span style={{ fontSize: 18 }}>{icon}</span>
-            <span style={{ fontSize: 10, fontWeight: tab === id ? 600 : 400 }}>{label}</span>
+      {/* Bottom nav — 4 tabs + FAB */}
+      <div style={{ position: "fixed", bottom: 0, left: 0, right: 0, background: "#111", borderTop: "1px solid #252525", display: "flex", alignItems: "center", padding: "0 2px", zIndex: 50, height: 64 }}>
+        {[
+          { id: "home", label: "Home", icon: <HomeIcon active={tab === "home"} /> },
+          { id: "gigs", label: "Gigs", icon: <ListIcon active={tab === "gigs"} /> },
+          { id: "calendar", label: "Calendar", icon: <CalIcon active={tab === "calendar"} /> },
+          { id: "stats", label: "Stats", icon: <ChartIcon active={tab === "stats"} /> },
+        ].map(({ id, label, icon }) => (
+          <button key={id} className="tap" onClick={() => setTab(id)}
+            style={{ flex: 1, background: "none", border: "none", display: "flex", flexDirection: "column", alignItems: "center", gap: 3, padding: "8px 0", color: tab === id ? "#c98a3a" : "#555" }}>
+            {icon}
+            <span style={{ fontSize: 9, fontWeight: tab === id ? 600 : 400 }}>{label}</span>
           </button>
         ))}
         <button className="tap" onClick={() => setScreen({ type: "form", gig: {} })}
-          style={{ width: 46, height: 46, borderRadius: 23, background: "#c98a3a", border: "none", color: "#fff", fontSize: 24, display: "flex", alignItems: "center", justifyContent: "center", boxShadow: "0 4px 16px rgba(201,138,58,.4)", margin: "0 8px" }}>
+          style={{ width: 44, height: 44, borderRadius: 22, background: "#c98a3a", border: "none", color: "#fff", fontSize: 22, display: "flex", alignItems: "center", justifyContent: "center", boxShadow: "0 4px 16px rgba(201,138,58,.4)", margin: "0 4px", flexShrink: 0 }}>
           +
         </button>
       </div>
@@ -158,6 +178,237 @@ export default function App() {
   );
 }
 
+// ─── Calendar Screen ──────────────────────────────────────────
+function CalendarScreen({ gigs, onGigTap, onAddGig }) {
+  const today = new Date();
+  const [year, setYear] = useState(today.getFullYear());
+  const [month, setMonth] = useState(today.getMonth());
+  const [dayModal, setDayModal] = useState(null); // {day, gigs[]}
+
+  const firstDayOfWeek = new Date(year, month, 1).getDay();
+  const daysInMonth = new Date(year, month + 1, 0).getDate();
+  const monthName = new Date(year, month, 1).toLocaleString("default", { month: "long", year: "numeric" });
+
+  // Build gigsByDay map
+  const gigsByDay = {};
+  gigs.forEach(g => {
+    const d = new Date(g.date);
+    if (d.getFullYear() === year && d.getMonth() === month) {
+      const day = d.getDate();
+      if (!gigsByDay[day]) gigsByDay[day] = [];
+      gigsByDay[day].push(g);
+    }
+  });
+
+  function prevMonth() { if (month === 0) { setMonth(11); setYear(y => y - 1); } else setMonth(m => m - 1); }
+  function nextMonth() { if (month === 11) { setMonth(0); setYear(y => y + 1); } else setMonth(m => m + 1); }
+
+  // Grid cells
+  const cells = [...Array(firstDayOfWeek).fill(null), ...Array.from({ length: daysInMonth }, (_, i) => i + 1)];
+  while (cells.length % 7 !== 0) cells.push(null);
+
+  const isToday = (d) => d === today.getDate() && month === today.getMonth() && year === today.getFullYear();
+
+  function handleDayTap(day) {
+    const dayGigs = gigsByDay[day] || [];
+    if (dayGigs.length === 0) {
+      // Empty day → open add form with date prefilled
+      const iso = `${year}-${String(month + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
+      onAddGig(iso);
+    } else if (dayGigs.length === 1) {
+      onGigTap(dayGigs[0]);
+    } else {
+      setDayModal({ day, gigs: dayGigs });
+    }
+  }
+
+  return (
+    <div style={{ padding: "24px 12px 0", paddingBottom: 16 }}>
+
+      {/* Day modal for multiple gigs */}
+      {dayModal && (
+        <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.7)", zIndex: 200, display: "flex", alignItems: "flex-end" }}
+          onClick={() => setDayModal(null)}>
+          <div onClick={e => e.stopPropagation()}
+            style={{ background: "#1e1e1e", borderRadius: "20px 20px 0 0", padding: "20px 16px 32px", width: "100%", border: "1px solid #2a2a2a" }}>
+            <div style={{ width: 40, height: 4, background: "#333", borderRadius: 2, margin: "0 auto 18px" }} />
+            <p style={{ fontSize: 13, color: "#666", marginBottom: 14 }}>
+              {new Date(year, month, dayModal.day).toLocaleDateString("en-IN", { weekday: "long", day: "numeric", month: "long" })}
+            </p>
+            <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+              {dayModal.gigs.map(g => {
+                const tc = TYPE_COLORS[g.type] || TYPE_COLORS["Other"];
+                return (
+                  <button key={g._id} className="tap"
+                    onClick={() => { setDayModal(null); onGigTap(g); }}
+                    style={{ background: tc.bg, border: `1px solid ${tc.border}`, borderRadius: 14, padding: "12px 16px", display: "flex", justifyContent: "space-between", alignItems: "center", textAlign: "left" }}>
+                    <div>
+                      <p style={{ fontSize: 14, fontWeight: 600, color: "#e8e8e6", marginBottom: 3 }}>{g.client}</p>
+                      <p style={{ fontSize: 11, color: tc.text }}>{g.type} · {g.confirmed ? "Confirmed" : "Unconfirmed"}</p>
+                    </div>
+                    <div style={{ textAlign: "right" }}>
+                      <p style={{ fontSize: 13, fontWeight: 600, color: "#e8e8e6" }}>{fmt(g.fee)}</p>
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Month nav */}
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 18, padding: "0 4px" }}>
+        <h1 style={{ fontSize: 20, fontWeight: 700 }}>Calendar</h1>
+        <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+          <button className="tap" onClick={prevMonth}
+            style={{ background: "#212121", border: "1px solid #2a2a2a", color: "#e8e8e6", width: 32, height: 32, borderRadius: 9, fontSize: 16, display: "flex", alignItems: "center", justifyContent: "center" }}>‹</button>
+          <span style={{ fontSize: 12, fontWeight: 600, color: "#e8e8e6", minWidth: 124, textAlign: "center" }}>{monthName}</span>
+          <button className="tap" onClick={nextMonth}
+            style={{ background: "#212121", border: "1px solid #2a2a2a", color: "#e8e8e6", width: 32, height: 32, borderRadius: 9, fontSize: 16, display: "flex", alignItems: "center", justifyContent: "center" }}>›</button>
+        </div>
+      </div>
+
+      {/* Day-of-week headers */}
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(7, 1fr)", gap: 2, marginBottom: 2 }}>
+        {["Su", "Mo", "Tu", "We", "Th", "Fr", "Sa"].map((d, i) => (
+          <div key={i} style={{ textAlign: "center", fontSize: 10, color: "#555", fontWeight: 600, paddingBottom: 6 }}>{d}</div>
+        ))}
+      </div>
+
+      {/* Calendar grid */}
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(7, 1fr)", gap: 2 }}>
+        {cells.map((day, idx) => {
+          if (!day) return <div key={`e-${idx}`} style={{ minHeight: 68 }} />;
+
+          const dayGigs = gigsByDay[day] || [];
+          const hasGigs = dayGigs.length > 0;
+          const todayCell = isToday(day);
+          // Use first gig's type color if any
+          const firstColor = hasGigs ? (TYPE_COLORS[dayGigs[0].type] || TYPE_COLORS["Other"]) : null;
+
+          return (
+            <button key={day} className="cal-cell tap"
+              onClick={() => handleDayTap(day)}
+              style={{
+                minHeight: 68,
+                background: hasGigs ? firstColor.bg : "#181818",
+                border: `1px solid ${todayCell ? "#c98a3a" : hasGigs ? firstColor.border : "#222"}`,
+                borderRadius: 9, padding: "5px 4px 4px",
+                display: "flex", flexDirection: "column", alignItems: "stretch", gap: 2,
+                transition: "border-color 0.12s",
+              }}>
+
+              {/* Day number */}
+              <div style={{ display: "flex", justifyContent: "flex-end", paddingRight: 2, marginBottom: 2 }}>
+                <span style={{
+                  fontSize: 11, fontWeight: todayCell ? 700 : 500, lineHeight: 1,
+                  color: todayCell ? "#c98a3a" : hasGigs ? "#ccc" : "#444",
+                  background: todayCell ? "rgba(201,138,58,0.15)" : "transparent",
+                  borderRadius: 4, padding: "1px 3px",
+                }}>{day}</span>
+              </div>
+
+              {/* Gig name tiles — show up to 2 */}
+              {dayGigs.slice(0, 2).map((g, i) => {
+                const tc = TYPE_COLORS[g.type] || TYPE_COLORS["Other"];
+                return (
+                  <div key={i} style={{
+                    background: tc.bg, border: `1px solid ${tc.border}`,
+                    borderRadius: 4, padding: "2px 3px",
+                    fontSize: 8, color: tc.text, fontWeight: 600,
+                    overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
+                    lineHeight: 1.5,
+                  }}>
+                    {g.client.length > 9 ? g.client.slice(0, 8) + "…" : g.client}
+                  </div>
+                );
+              })}
+
+              {/* +N overflow */}
+              {dayGigs.length > 2 && (
+                <div style={{ fontSize: 8, color: "#666", textAlign: "center", marginTop: 1 }}>+{dayGigs.length - 2}</div>
+              )}
+
+              {/* Empty day hint */}
+              {!hasGigs && (
+                <div style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center" }}>
+                  <span style={{ fontSize: 14, color: "#2a2a2a" }}>+</span>
+                </div>
+              )}
+            </button>
+          );
+        })}
+      </div>
+
+      {/* Color legend */}
+      <div style={{ marginTop: 16, padding: "12px", background: "#181818", borderRadius: 12, border: "1px solid #222" }}>
+        <p style={{ fontSize: 9, color: "#555", marginBottom: 8, textTransform: "uppercase", letterSpacing: "0.1em" }}>Type Colors</p>
+        <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+          {Object.entries(TYPE_COLORS).filter(([k]) => k !== "Other").map(([type, tc]) => (
+            <div key={type} style={{ display: "flex", alignItems: "center", gap: 4 }}>
+              <div style={{ width: 8, height: 8, borderRadius: 2, background: tc.text }} />
+              <span style={{ fontSize: 9, color: "#777" }}>{type}</span>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* This month list */}
+      {Object.keys(gigsByDay).length > 0 && (
+        <div style={{ marginTop: 16 }}>
+          <p style={{ fontSize: 12, fontWeight: 600, color: "#666", marginBottom: 10 }}>
+            {monthName} — {Object.values(gigsByDay).flat().length} gig{Object.values(gigsByDay).flat().length !== 1 ? "s" : ""}
+          </p>
+          <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+            {Object.entries(gigsByDay)
+              .sort(([a], [b]) => +a - +b)
+              .flatMap(([day, gs]) => gs.map(g => {
+                const tc = TYPE_COLORS[g.type] || TYPE_COLORS["Other"];
+                const status = payStatus(g);
+                const payColor = status === "paid" ? "#5bb974" : status === "partial" ? "#e07b3a" : "#e05c5c";
+                const payLabel = status === "paid" ? "Paid" : status === "partial" ? "Partial" : "Unpaid";
+                return (
+                  <button key={g._id} className="tap"
+                    onClick={() => onGigTap(g)}
+                    style={{ background: tc.bg, border: `1px solid ${tc.border}`, borderRadius: 12, padding: "10px 14px", display: "flex", alignItems: "center", gap: 12, textAlign: "left" }}>
+                    <div style={{ width: 36, textAlign: "center", flexShrink: 0 }}>
+                      <div style={{ fontSize: 18, fontWeight: 700, color: tc.text, lineHeight: 1 }}>{day}</div>
+                      <div style={{ fontSize: 9, color: "#666", marginTop: 2, textTransform: "uppercase" }}>
+                        {new Date(year, month, +day).toLocaleString("default", { weekday: "short" })}
+                      </div>
+                    </div>
+                    <div style={{ width: 1, height: 32, background: tc.border, flexShrink: 0 }} />
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <p style={{ fontSize: 13, fontWeight: 600, color: "#e8e8e6", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{g.client}</p>
+                      <div style={{ display: "flex", alignItems: "center", gap: 5, marginTop: 3 }}>
+                        <span style={{ fontSize: 10, color: "#666" }}>{g.type}</span>
+                        <span style={{ fontSize: 8, color: "#333" }}>●</span>
+                        <span style={{ fontSize: 10, color: g.confirmed ? "#5bb974" : "#a78bfa" }}>{g.confirmed ? "Confirmed" : "Unconfirmed"}</span>
+                      </div>
+                    </div>
+                    <div style={{ textAlign: "right", flexShrink: 0 }}>
+                      <p style={{ fontSize: 13, fontWeight: 600, color: "#e8e8e6" }}>{fmt(g.fee)}</p>
+                      <span style={{ fontSize: 10, color: payColor, fontWeight: 600 }}>{payLabel}</span>
+                    </div>
+                  </button>
+                );
+              }))
+            }
+          </div>
+        </div>
+      )}
+
+      {Object.keys(gigsByDay).length === 0 && (
+        <div style={{ textAlign: "center", padding: "32px 0 16px", color: "#555", fontSize: 13 }}>
+          No gigs this month. Tap any date to add one.
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ─── Home Screen ──────────────────────────────────────────────
 function HomeScreen({ stats, recentGigs, onGigTap, onViewAll }) {
   if (!stats) return <Spinner />;
   return (
@@ -199,6 +450,7 @@ function HomeScreen({ stats, recentGigs, onGigTap, onViewAll }) {
   );
 }
 
+// ─── Gigs Screen ──────────────────────────────────────────────
 function GigsScreen({ gigs, months, filterMonth, setFilterMonth, onGigTap }) {
   return (
     <div style={{ padding: "24px 16px 0" }}>
@@ -219,6 +471,7 @@ function GigsScreen({ gigs, months, filterMonth, setFilterMonth, onGigTap }) {
   );
 }
 
+// ─── Stats Screen ─────────────────────────────────────────────
 function StatsScreen({ stats }) {
   if (!stats) return <Spinner />;
   const maxEarned = Math.max(...(stats.monthly || []).map(m => m.earned), 1);
@@ -257,6 +510,7 @@ function StatsScreen({ stats }) {
   );
 }
 
+// ─── Gig Card ─────────────────────────────────────────────────
 function GigCard({ gig, onTap }) {
   const status = payStatus(gig);
   const badge = status === "paid" ? { label: "Paid", color: "#5bb974", bg: "#1a2e1e" }
@@ -280,6 +534,7 @@ function GigCard({ gig, onTap }) {
   );
 }
 
+// ─── Gig Detail ───────────────────────────────────────────────
 function GigDetail({ gig, onBack, onEdit, onDelete, onToggleConfirm }) {
   const [deleting, setDeleting] = useState(false);
   const status = payStatus(gig);
@@ -298,13 +553,10 @@ function GigDetail({ gig, onBack, onEdit, onDelete, onToggleConfirm }) {
   return (
     <div style={{ padding: "20px 16px" }}>
       <button className="tap" onClick={onBack} style={{ background: "none", border: "none", color: "#c98a3a", fontSize: 14, padding: 0, marginBottom: 24 }}>← Back</button>
-      <div style={{ display: "flex", alignItems: "center", gap: 14, marginBottom: 20 }}>
-        <div>
-          <h1 style={{ fontSize: 20, fontWeight: 700, color: "white" }}>{gig.client}</h1>
-          <p style={{ fontSize: 12, color: "#666", marginTop: 4 }}>{gig.type} · {new Date(gig.date).toLocaleDateString("en-IN", { day: "numeric", month: "long", year: "numeric" })}</p>
-        </div>
+      <div style={{ marginBottom: 20 }}>
+        <h1 style={{ fontSize: 20, fontWeight: 700, color: "white" }}>{gig.client}</h1>
+        <p style={{ fontSize: 12, color: "#666", marginTop: 4 }}>{gig.type} · {new Date(gig.date).toLocaleDateString("en-IN", { day: "numeric", month: "long", year: "numeric" })}</p>
       </div>
-
       <div style={{ display: "flex", gap: 10, marginBottom: 16 }}>
         <div style={{ flex: 1, background: gig.confirmed ? "#0f2218" : "#1e1828", border: `1px solid ${gig.confirmed ? "#1e4d30" : "#3b2f6b"}`, borderRadius: 14, padding: "12px 14px" }}>
           <p style={{ fontSize: 10, color: "#666", marginBottom: 6, textTransform: "uppercase", letterSpacing: "0.06em" }}>Gig Status</p>
@@ -321,12 +573,10 @@ function GigDetail({ gig, onBack, onEdit, onDelete, onToggleConfirm }) {
           </div>
         </div>
       </div>
-
       <button className="tap" onClick={() => onToggleConfirm(gig._id)}
         style={{ width: "100%", borderRadius: 14, padding: 14, fontSize: 14, fontWeight: 600, marginBottom: 16, border: "none", background: gig.confirmed ? "#1e1828" : "#0f2218", color: gig.confirmed ? "#a78bfa" : "#5bb974" }}>
         {gig.confirmed ? "✕  Mark as Unconfirmed" : "✓  Mark as Confirmed"}
       </button>
-
       <div style={{ background: "#212121", borderRadius: 18, overflow: "hidden", marginBottom: 16, border: "1px solid #2a2a2a" }}>
         {[{ label: "Total Fee", value: fmt(gig.fee), color: "#e8e8e6" }, { label: "Received", value: fmt(gig.paid), color: "#5bb974" }, { label: "Balance Due", value: fmt(Math.max(0, pending)), color: pending > 0 ? "#e07b3a" : "#5bb974" }].map((row, i, arr) => (
           <div key={i} style={{ padding: "16px 18px", borderBottom: i < arr.length - 1 ? "1px solid #2a2a2a" : "none", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
@@ -335,7 +585,6 @@ function GigDetail({ gig, onBack, onEdit, onDelete, onToggleConfirm }) {
           </div>
         ))}
       </div>
-
       <div style={{ marginBottom: 20 }}>
         <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12, color: "#555", marginBottom: 8 }}>
           <span>Payment progress</span><span>{Math.round((gig.paid / gig.fee) * 100)}%</span>
@@ -344,14 +593,12 @@ function GigDetail({ gig, onBack, onEdit, onDelete, onToggleConfirm }) {
           <div style={{ height: 6, width: `${Math.min(100, (gig.paid / gig.fee) * 100)}%`, background: "#5bb974", borderRadius: 3 }} />
         </div>
       </div>
-
       {gig.notes && (
         <div style={{ background: "#212121", borderRadius: 14, padding: "14px 16px", marginBottom: 20, border: "1px solid #2a2a2a" }}>
           <p style={{ fontSize: 11, color: "#555", marginBottom: 6, textTransform: "uppercase", letterSpacing: "0.05em" }}>Notes</p>
           <p style={{ fontSize: 14, color: "#aaa" }}>{gig.notes}</p>
         </div>
       )}
-
       <div style={{ display: "flex", gap: 10 }}>
         <button className="tap" onClick={() => onEdit(gig)} style={{ flex: 1, background: "#212121", border: "1px solid #2a2a2a", color: "#e8e8e6", borderRadius: 14, padding: 16, fontSize: 15, fontWeight: 500 }}>Edit Gig</button>
         <button className="tap" onClick={handleDelete} disabled={deleting} style={{ flex: 1, background: "#2a1010", border: "1px solid #3a1515", color: "#e05c5c", borderRadius: 14, padding: 16, fontSize: 15, fontWeight: 500, opacity: deleting ? 0.5 : 1 }}>
@@ -362,10 +609,13 @@ function GigDetail({ gig, onBack, onEdit, onDelete, onToggleConfirm }) {
   );
 }
 
+// ─── Gig Form ─────────────────────────────────────────────────
 function GigForm({ gig, onSave, onBack }) {
   const [form, setForm] = useState({
     client: gig?.client || "",
-    date: gig?.date ? new Date(gig.date).toISOString().slice(0, 10) : new Date().toISOString().slice(0, 10),
+    date: gig?.date
+      ? (typeof gig.date === "string" && gig.date.length === 10 ? gig.date : new Date(gig.date).toISOString().slice(0, 10))
+      : new Date().toISOString().slice(0, 10),
     type: gig?.type || "Wedding",
     fee: gig?.fee || "",
     paid: gig?.paid || 0,
@@ -395,7 +645,7 @@ function GigForm({ gig, onSave, onBack }) {
       <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
         <div>
           <label style={lbl}>Client / Event</label>
-          <input style={inp} value={form.client} onChange={e => set("client", e.target.value)} placeholder="Event Type" />
+          <input style={inp} value={form.client} onChange={e => set("client", e.target.value)} placeholder="e.g. Ritz Wedding Hall" />
         </div>
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
           <div>
@@ -409,7 +659,6 @@ function GigForm({ gig, onSave, onBack }) {
             </select>
           </div>
         </div>
-
         <div>
           <label style={lbl}>Gig Confirmation</label>
           <div style={{ display: "flex", gap: 10 }}>
@@ -421,12 +670,10 @@ function GigForm({ gig, onSave, onBack }) {
             ))}
           </div>
         </div>
-
         <div>
           <label style={lbl}>Notes</label>
           <input style={inp} value={form.notes} onChange={e => set("notes", e.target.value)} placeholder="Any notes..." />
         </div>
-
         <div style={{ background: "#212121", borderRadius: 18, padding: 16, border: "1px solid #2a2a2a" }}>
           <p style={{ fontSize: 12, fontWeight: 600, color: "#666", marginBottom: 14, textTransform: "uppercase", letterSpacing: "0.06em" }}>Payment</p>
           <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
@@ -451,7 +698,6 @@ function GigForm({ gig, onSave, onBack }) {
             </div>
           )}
         </div>
-
         <button className="tap" onClick={handleSave} disabled={saving}
           style={{ background: "#c98a3a", border: "none", color: "#fff", borderRadius: 16, padding: 17, fontSize: 16, fontWeight: 600, marginTop: 4, marginBottom: 16, opacity: saving ? 0.7 : 1 }}>
           {saving ? "Saving..." : form._id ? "Save Changes" : "Add Gig"}
@@ -459,4 +705,18 @@ function GigForm({ gig, onSave, onBack }) {
       </div>
     </div>
   );
+}
+
+// ─── SVG Nav Icons ────────────────────────────────────────────
+function HomeIcon({ active }) {
+  return <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke={active ? "#c98a3a" : "#555"} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 9.5L12 3l9 6.5V20a1 1 0 01-1 1H5a1 1 0 01-1-1V9.5z" /><path d="M9 21V12h6v9" /></svg>;
+}
+function ListIcon({ active }) {
+  return <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke={active ? "#c98a3a" : "#555"} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="8" y1="6" x2="21" y2="6" /><line x1="8" y1="12" x2="21" y2="12" /><line x1="8" y1="18" x2="21" y2="18" /><line x1="3" y1="6" x2="3.01" y2="6" /><line x1="3" y1="12" x2="3.01" y2="12" /><line x1="3" y1="18" x2="3.01" y2="18" /></svg>;
+}
+function CalIcon({ active }) {
+  return <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke={active ? "#c98a3a" : "#555"} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" /><line x1="16" y1="2" x2="16" y2="6" /><line x1="8" y1="2" x2="8" y2="6" /><line x1="3" y1="10" x2="21" y2="10" /></svg>;
+}
+function ChartIcon({ active }) {
+  return <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke={active ? "#c98a3a" : "#555"} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="20" x2="18" y2="10" /><line x1="12" y1="20" x2="12" y2="4" /><line x1="6" y1="20" x2="6" y2="14" /></svg>;
 }
