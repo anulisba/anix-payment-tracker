@@ -53,16 +53,6 @@ function AppHeader({ title, subtitle }) {
         zIndex: 20,
       }}
     >
-      <p
-        style={{
-          fontSize: 13,
-          color: "#666",
-          marginBottom: 4,
-        }}
-      >
-        {subtitle}
-      </p>
-
       <h1
         style={{
           fontSize: 24,
@@ -73,6 +63,17 @@ function AppHeader({ title, subtitle }) {
       >
         {title}
       </h1>
+      <p
+        style={{
+          fontSize: 13,
+          color: "#666",
+          marginBottom: 4,
+        }}
+      >
+        {subtitle}
+      </p>
+
+
     </div>
   );
 }
