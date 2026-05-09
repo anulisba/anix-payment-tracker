@@ -270,14 +270,29 @@ function CalendarScreen({ gigs, onGigTap, onAddGig }) {
       </div>
 
       {/* Day-of-week headers */}
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(7, 1fr)", gap: 2, marginBottom: 2 }}>
+      <div
+        style={{
+          display: "grid",
+          gridTemplateColumns: "repeat(7, minmax(0, 1fr))",
+          gap: 2,
+          marginBottom: 2,
+          width: "100%",
+        }}
+      >
         {["Su", "Mo", "Tu", "We", "Th", "Fr", "Sa"].map((d, i) => (
           <div key={i} style={{ textAlign: "center", fontSize: 10, color: "#555", fontWeight: 600, paddingBottom: 6 }}>{d}</div>
         ))}
       </div>
 
       {/* Calendar grid */}
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(7, 1fr)", gap: 2 }}>
+      <div
+        style={{
+          display: "grid",
+          gridTemplateColumns: "repeat(7, minmax(0, 1fr))",
+          gap: 2,
+          width: "100%",
+        }}
+      >
         {cells.map((day, idx) => {
           if (!day) return <div key={`e-${idx}`} style={{ minHeight: 68 }} />;
 
@@ -292,10 +307,20 @@ function CalendarScreen({ gigs, onGigTap, onAddGig }) {
               onClick={() => handleDayTap(day)}
               style={{
                 minHeight: 68,
+                width: "100%",
+                boxSizing: "border-box",
+                overflow: "hidden",
+
                 background: hasGigs ? firstColor.bg : "#181818",
                 border: `1px solid ${todayCell ? "#c98a3a" : hasGigs ? firstColor.border : "#222"}`,
-                borderRadius: 9, padding: "5px 4px 4px",
-                display: "flex", flexDirection: "column", alignItems: "stretch", gap: 2,
+                borderRadius: 9,
+                padding: "5px 4px 4px",
+
+                display: "flex",
+                flexDirection: "column",
+                alignItems: "stretch",
+                gap: 2,
+
                 transition: "border-color 0.12s",
               }}>
 
