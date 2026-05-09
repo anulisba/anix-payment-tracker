@@ -41,7 +41,41 @@ function Toast({ message, type }) {
     </div>
   );
 }
+function AppHeader({ title, subtitle }) {
+  return (
+    <div
+      style={{
+        padding: "24px 16px 18px",
+        borderBottom: "1px solid #222",
+        background: "#1a1a1a",
+        position: "sticky",
+        top: 0,
+        zIndex: 20,
+      }}
+    >
+      <p
+        style={{
+          fontSize: 13,
+          color: "#666",
+          marginBottom: 4,
+        }}
+      >
+        {subtitle}
+      </p>
 
+      <h1
+        style={{
+          fontSize: 24,
+          fontWeight: 700,
+          color: "#fff",
+          letterSpacing: "-0.02em",
+        }}
+      >
+        {title}
+      </h1>
+    </div>
+  );
+}
 function Spinner() {
   return (
     <div style={{ display: "flex", justifyContent: "center", alignItems: "center", padding: "60px 0" }}>
@@ -223,213 +257,220 @@ function CalendarScreen({ gigs, onGigTap, onAddGig }) {
   }
 
   return (
-    <div style={{ padding: "24px 12px 0", paddingBottom: 16 }}>
+    <>
+      <AppHeader
+        title="Payment Tracker"
+        subtitle="Welcome back Anix 👋"
+      />
 
-      {/* Day modal for multiple gigs */}
-      {dayModal && (
-        <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.7)", zIndex: 200, display: "flex", alignItems: "flex-end" }}
-          onClick={() => setDayModal(null)}>
-          <div onClick={e => e.stopPropagation()}
-            style={{ background: "#1e1e1e", borderRadius: "20px 20px 0 0", padding: "20px 16px 32px", width: "100%", border: "1px solid #2a2a2a" }}>
-            <div style={{ width: 40, height: 4, background: "#333", borderRadius: 2, margin: "0 auto 18px" }} />
-            <p style={{ fontSize: 13, color: "#666", marginBottom: 14 }}>
-              {new Date(year, month, dayModal.day).toLocaleDateString("en-IN", { weekday: "long", day: "numeric", month: "long" })}
-            </p>
-            <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-              {dayModal.gigs.map(g => {
-                const tc = TYPE_COLORS[g.type] || TYPE_COLORS["Other"];
-                return (
-                  <button key={g._id} className="tap"
-                    onClick={() => { setDayModal(null); onGigTap(g); }}
-                    style={{ background: tc.bg, border: `1px solid ${tc.border}`, borderRadius: 14, padding: "12px 16px", display: "flex", justifyContent: "space-between", alignItems: "center", textAlign: "left" }}>
-                    <div>
-                      <p style={{ fontSize: 14, fontWeight: 600, color: "#e8e8e6", marginBottom: 3 }}>{g.client}</p>
-                      <p style={{ fontSize: 11, color: tc.text }}>{g.type} · {g.confirmed ? "Confirmed" : "Unconfirmed"}</p>
-                    </div>
-                    <div style={{ textAlign: "right" }}>
-                      <p style={{ fontSize: 13, fontWeight: 600, color: "#e8e8e6" }}>{fmt(g.fee)}</p>
-                    </div>
-                  </button>
-                );
-              })}
+      <div style={{ padding: "18px 16px 0" }}>
+
+        {/* Day modal for multiple gigs */}
+        {dayModal && (
+          <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.7)", zIndex: 200, display: "flex", alignItems: "flex-end" }}
+            onClick={() => setDayModal(null)}>
+            <div onClick={e => e.stopPropagation()}
+              style={{ background: "#1e1e1e", borderRadius: "20px 20px 0 0", padding: "20px 16px 32px", width: "100%", border: "1px solid #2a2a2a" }}>
+              <div style={{ width: 40, height: 4, background: "#333", borderRadius: 2, margin: "0 auto 18px" }} />
+              <p style={{ fontSize: 13, color: "#666", marginBottom: 14 }}>
+                {new Date(year, month, dayModal.day).toLocaleDateString("en-IN", { weekday: "long", day: "numeric", month: "long" })}
+              </p>
+              <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                {dayModal.gigs.map(g => {
+                  const tc = TYPE_COLORS[g.type] || TYPE_COLORS["Other"];
+                  return (
+                    <button key={g._id} className="tap"
+                      onClick={() => { setDayModal(null); onGigTap(g); }}
+                      style={{ background: tc.bg, border: `1px solid ${tc.border}`, borderRadius: 14, padding: "12px 16px", display: "flex", justifyContent: "space-between", alignItems: "center", textAlign: "left" }}>
+                      <div>
+                        <p style={{ fontSize: 14, fontWeight: 600, color: "#e8e8e6", marginBottom: 3 }}>{g.client}</p>
+                        <p style={{ fontSize: 11, color: tc.text }}>{g.type} · {g.confirmed ? "Confirmed" : "Unconfirmed"}</p>
+                      </div>
+                      <div style={{ textAlign: "right" }}>
+                        <p style={{ fontSize: 13, fontWeight: 600, color: "#e8e8e6" }}>{fmt(g.fee)}</p>
+                      </div>
+                    </button>
+                  );
+                })}
+              </div>
             </div>
           </div>
+        )}
+
+        {/* Month nav */}
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 18, padding: "0 4px" }}>
+          <h1 style={{ fontSize: 20, fontWeight: 700 }}>Calendar</h1>
+          <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+            <button className="tap" onClick={prevMonth}
+              style={{ background: "#212121", border: "1px solid #2a2a2a", color: "#e8e8e6", width: 32, height: 32, borderRadius: 9, fontSize: 16, display: "flex", alignItems: "center", justifyContent: "center" }}>‹</button>
+            <span style={{ fontSize: 12, fontWeight: 600, color: "#e8e8e6", minWidth: 124, textAlign: "center" }}>{monthName}</span>
+            <button className="tap" onClick={nextMonth}
+              style={{ background: "#212121", border: "1px solid #2a2a2a", color: "#e8e8e6", width: 32, height: 32, borderRadius: 9, fontSize: 16, display: "flex", alignItems: "center", justifyContent: "center" }}>›</button>
+          </div>
         </div>
-      )}
 
-      {/* Month nav */}
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 18, padding: "0 4px" }}>
-        <h1 style={{ fontSize: 20, fontWeight: 700 }}>Calendar</h1>
-        <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-          <button className="tap" onClick={prevMonth}
-            style={{ background: "#212121", border: "1px solid #2a2a2a", color: "#e8e8e6", width: 32, height: 32, borderRadius: 9, fontSize: 16, display: "flex", alignItems: "center", justifyContent: "center" }}>‹</button>
-          <span style={{ fontSize: 12, fontWeight: 600, color: "#e8e8e6", minWidth: 124, textAlign: "center" }}>{monthName}</span>
-          <button className="tap" onClick={nextMonth}
-            style={{ background: "#212121", border: "1px solid #2a2a2a", color: "#e8e8e6", width: 32, height: 32, borderRadius: 9, fontSize: 16, display: "flex", alignItems: "center", justifyContent: "center" }}>›</button>
-        </div>
-      </div>
-
-      {/* Day-of-week headers */}
-      <div
-        style={{
-          display: "grid",
-          gridTemplateColumns: "repeat(7, minmax(0, 1fr))",
-          gap: 2,
-          marginBottom: 2,
-          width: "100%",
-        }}
-      >
-        {["Su", "Mo", "Tu", "We", "Th", "Fr", "Sa"].map((d, i) => (
-          <div key={i} style={{ textAlign: "center", fontSize: 10, color: "#555", fontWeight: 600, paddingBottom: 6 }}>{d}</div>
-        ))}
-      </div>
-
-      {/* Calendar grid */}
-      <div
-        style={{
-          display: "grid",
-          gridTemplateColumns: "repeat(7, minmax(0, 1fr))",
-          gap: 2,
-          width: "100%",
-        }}
-      >
-        {cells.map((day, idx) => {
-          if (!day) return <div key={`e-${idx}`} style={{ minHeight: 68 }} />;
-
-          const dayGigs = gigsByDay[day] || [];
-          const hasGigs = dayGigs.length > 0;
-          const todayCell = isToday(day);
-          // Use first gig's type color if any
-          const firstColor = hasGigs ? (TYPE_COLORS[dayGigs[0].type] || TYPE_COLORS["Other"]) : null;
-
-          return (
-            <button key={day} className="cal-cell tap"
-              onClick={() => handleDayTap(day)}
-              style={{
-                minHeight: 68,
-                width: "100%",
-                boxSizing: "border-box",
-                overflow: "hidden",
-
-                background: hasGigs ? firstColor.bg : "#181818",
-                border: `1px solid ${todayCell ? "#c98a3a" : hasGigs ? firstColor.border : "#222"}`,
-                borderRadius: 9,
-                padding: "5px 4px 4px",
-
-                display: "flex",
-                flexDirection: "column",
-                alignItems: "stretch",
-                gap: 2,
-
-                transition: "border-color 0.12s",
-              }}>
-
-              {/* Day number */}
-              <div style={{ display: "flex", justifyContent: "flex-end", paddingRight: 2, marginBottom: 2 }}>
-                <span style={{
-                  fontSize: 11, fontWeight: todayCell ? 700 : 500, lineHeight: 1,
-                  color: todayCell ? "#c98a3a" : hasGigs ? "#ccc" : "#444",
-                  background: todayCell ? "rgba(201,138,58,0.15)" : "transparent",
-                  borderRadius: 4, padding: "1px 3px",
-                }}>{day}</span>
-              </div>
-
-              {/* Gig name tiles — show up to 2 */}
-              {dayGigs.slice(0, 2).map((g, i) => {
-                const tc = TYPE_COLORS[g.type] || TYPE_COLORS["Other"];
-                return (
-                  <div key={i} style={{
-                    background: tc.bg, border: `1px solid ${tc.border}`,
-                    borderRadius: 4, padding: "2px 3px",
-                    fontSize: 8, color: tc.text, fontWeight: 600,
-                    overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
-                    lineHeight: 1.5,
-                  }}>
-                    {g.client.length > 9 ? g.client.slice(0, 8) + "…" : g.client}
-                  </div>
-                );
-              })}
-
-              {/* +N overflow */}
-              {dayGigs.length > 2 && (
-                <div style={{ fontSize: 8, color: "#666", textAlign: "center", marginTop: 1 }}>+{dayGigs.length - 2}</div>
-              )}
-
-              {/* Empty day hint */}
-              {!hasGigs && (
-                <div style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center" }}>
-                  <span style={{ fontSize: 14, color: "#2a2a2a" }}>+</span>
-                </div>
-              )}
-            </button>
-          );
-        })}
-      </div>
-
-      {/* Color legend */}
-      <div style={{ marginTop: 16, padding: "12px", background: "#181818", borderRadius: 12, border: "1px solid #222" }}>
-        <p style={{ fontSize: 9, color: "#555", marginBottom: 8, textTransform: "uppercase", letterSpacing: "0.1em" }}>Type Colors</p>
-        <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
-          {Object.entries(TYPE_COLORS).filter(([k]) => k !== "Other").map(([type, tc]) => (
-            <div key={type} style={{ display: "flex", alignItems: "center", gap: 4 }}>
-              <div style={{ width: 8, height: 8, borderRadius: 2, background: tc.text }} />
-              <span style={{ fontSize: 9, color: "#777" }}>{type}</span>
-            </div>
+        {/* Day-of-week headers */}
+        <div
+          style={{
+            display: "grid",
+            gridTemplateColumns: "repeat(7, minmax(0, 1fr))",
+            gap: 2,
+            marginBottom: 2,
+            width: "100%",
+          }}
+        >
+          {["Su", "Mo", "Tu", "We", "Th", "Fr", "Sa"].map((d, i) => (
+            <div key={i} style={{ textAlign: "center", fontSize: 10, color: "#555", fontWeight: 600, paddingBottom: 6 }}>{d}</div>
           ))}
         </div>
-      </div>
 
-      {/* This month list */}
-      {Object.keys(gigsByDay).length > 0 && (
-        <div style={{ marginTop: 16 }}>
-          <p style={{ fontSize: 12, fontWeight: 600, color: "#666", marginBottom: 10 }}>
-            {monthName} — {Object.values(gigsByDay).flat().length} gig{Object.values(gigsByDay).flat().length !== 1 ? "s" : ""}
-          </p>
-          <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-            {Object.entries(gigsByDay)
-              .sort(([a], [b]) => +a - +b)
-              .flatMap(([day, gs]) => gs.map(g => {
-                const tc = TYPE_COLORS[g.type] || TYPE_COLORS["Other"];
-                const status = payStatus(g);
-                const payColor = status === "paid" ? "#5bb974" : status === "partial" ? "#e07b3a" : "#e05c5c";
-                const payLabel = status === "paid" ? "Paid" : status === "partial" ? "Partial" : "Unpaid";
-                return (
-                  <button key={g._id} className="tap"
-                    onClick={() => onGigTap(g)}
-                    style={{ background: tc.bg, border: `1px solid ${tc.border}`, borderRadius: 12, padding: "10px 14px", display: "flex", alignItems: "center", gap: 12, textAlign: "left" }}>
-                    <div style={{ width: 36, textAlign: "center", flexShrink: 0 }}>
-                      <div style={{ fontSize: 18, fontWeight: 700, color: tc.text, lineHeight: 1 }}>{day}</div>
-                      <div style={{ fontSize: 9, color: "#666", marginTop: 2, textTransform: "uppercase" }}>
-                        {new Date(year, month, +day).toLocaleString("default", { weekday: "short" })}
-                      </div>
+        {/* Calendar grid */}
+        <div
+          style={{
+            display: "grid",
+            gridTemplateColumns: "repeat(7, minmax(0, 1fr))",
+            gap: 2,
+            width: "100%",
+          }}
+        >
+          {cells.map((day, idx) => {
+            if (!day) return <div key={`e-${idx}`} style={{ minHeight: 68 }} />;
+
+            const dayGigs = gigsByDay[day] || [];
+            const hasGigs = dayGigs.length > 0;
+            const todayCell = isToday(day);
+            // Use first gig's type color if any
+            const firstColor = hasGigs ? (TYPE_COLORS[dayGigs[0].type] || TYPE_COLORS["Other"]) : null;
+
+            return (
+              <button key={day} className="cal-cell tap"
+                onClick={() => handleDayTap(day)}
+                style={{
+                  minHeight: 68,
+                  width: "100%",
+                  boxSizing: "border-box",
+                  overflow: "hidden",
+
+                  background: hasGigs ? firstColor.bg : "#181818",
+                  border: `1px solid ${todayCell ? "#c98a3a" : hasGigs ? firstColor.border : "#222"}`,
+                  borderRadius: 9,
+                  padding: "5px 4px 4px",
+
+                  display: "flex",
+                  flexDirection: "column",
+                  alignItems: "stretch",
+                  gap: 2,
+
+                  transition: "border-color 0.12s",
+                }}>
+
+                {/* Day number */}
+                <div style={{ display: "flex", justifyContent: "flex-end", paddingRight: 2, marginBottom: 2 }}>
+                  <span style={{
+                    fontSize: 11, fontWeight: todayCell ? 700 : 500, lineHeight: 1,
+                    color: todayCell ? "#c98a3a" : hasGigs ? "#ccc" : "#444",
+                    background: todayCell ? "rgba(201,138,58,0.15)" : "transparent",
+                    borderRadius: 4, padding: "1px 3px",
+                  }}>{day}</span>
+                </div>
+
+                {/* Gig name tiles — show up to 2 */}
+                {dayGigs.slice(0, 2).map((g, i) => {
+                  const tc = TYPE_COLORS[g.type] || TYPE_COLORS["Other"];
+                  return (
+                    <div key={i} style={{
+                      background: tc.bg, border: `1px solid ${tc.border}`,
+                      borderRadius: 4, padding: "2px 3px",
+                      fontSize: 8, color: tc.text, fontWeight: 600,
+                      overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
+                      lineHeight: 1.5,
+                    }}>
+                      {g.client.length > 9 ? g.client.slice(0, 8) + "…" : g.client}
                     </div>
-                    <div style={{ width: 1, height: 32, background: tc.border, flexShrink: 0 }} />
-                    <div style={{ flex: 1, minWidth: 0 }}>
-                      <p style={{ fontSize: 13, fontWeight: 600, color: "#e8e8e6", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{g.client}</p>
-                      <div style={{ display: "flex", alignItems: "center", gap: 5, marginTop: 3 }}>
-                        <span style={{ fontSize: 10, color: "#666" }}>{g.type}</span>
-                        <span style={{ fontSize: 8, color: "#333" }}>●</span>
-                        <span style={{ fontSize: 10, color: g.confirmed ? "#5bb974" : "#a78bfa" }}>{g.confirmed ? "Confirmed" : "Unconfirmed"}</span>
-                      </div>
-                    </div>
-                    <div style={{ textAlign: "right", flexShrink: 0 }}>
-                      <p style={{ fontSize: 13, fontWeight: 600, color: "#e8e8e6" }}>{fmt(g.fee)}</p>
-                      <span style={{ fontSize: 10, color: payColor, fontWeight: 600 }}>{payLabel}</span>
-                    </div>
-                  </button>
-                );
-              }))
-            }
+                  );
+                })}
+
+                {/* +N overflow */}
+                {dayGigs.length > 2 && (
+                  <div style={{ fontSize: 8, color: "#666", textAlign: "center", marginTop: 1 }}>+{dayGigs.length - 2}</div>
+                )}
+
+                {/* Empty day hint */}
+                {!hasGigs && (
+                  <div style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center" }}>
+                    <span style={{ fontSize: 14, color: "#2a2a2a" }}>+</span>
+                  </div>
+                )}
+              </button>
+            );
+          })}
+        </div>
+
+        {/* Color legend */}
+        <div style={{ marginTop: 16, padding: "12px", background: "#181818", borderRadius: 12, border: "1px solid #222" }}>
+          <p style={{ fontSize: 9, color: "#555", marginBottom: 8, textTransform: "uppercase", letterSpacing: "0.1em" }}>Type Colors</p>
+          <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+            {Object.entries(TYPE_COLORS).filter(([k]) => k !== "Other").map(([type, tc]) => (
+              <div key={type} style={{ display: "flex", alignItems: "center", gap: 4 }}>
+                <div style={{ width: 8, height: 8, borderRadius: 2, background: tc.text }} />
+                <span style={{ fontSize: 9, color: "#777" }}>{type}</span>
+              </div>
+            ))}
           </div>
         </div>
-      )}
 
-      {Object.keys(gigsByDay).length === 0 && (
-        <div style={{ textAlign: "center", padding: "32px 0 16px", color: "#555", fontSize: 13 }}>
-          No gigs this month. Tap any date to add one.
-        </div>
-      )}
-    </div>
+        {/* This month list */}
+        {Object.keys(gigsByDay).length > 0 && (
+          <div style={{ marginTop: 16 }}>
+            <p style={{ fontSize: 12, fontWeight: 600, color: "#666", marginBottom: 10 }}>
+              {monthName} — {Object.values(gigsByDay).flat().length} gig{Object.values(gigsByDay).flat().length !== 1 ? "s" : ""}
+            </p>
+            <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+              {Object.entries(gigsByDay)
+                .sort(([a], [b]) => +a - +b)
+                .flatMap(([day, gs]) => gs.map(g => {
+                  const tc = TYPE_COLORS[g.type] || TYPE_COLORS["Other"];
+                  const status = payStatus(g);
+                  const payColor = status === "paid" ? "#5bb974" : status === "partial" ? "#e07b3a" : "#e05c5c";
+                  const payLabel = status === "paid" ? "Paid" : status === "partial" ? "Partial" : "Unpaid";
+                  return (
+                    <button key={g._id} className="tap"
+                      onClick={() => onGigTap(g)}
+                      style={{ background: tc.bg, border: `1px solid ${tc.border}`, borderRadius: 12, padding: "10px 14px", display: "flex", alignItems: "center", gap: 12, textAlign: "left" }}>
+                      <div style={{ width: 36, textAlign: "center", flexShrink: 0 }}>
+                        <div style={{ fontSize: 18, fontWeight: 700, color: tc.text, lineHeight: 1 }}>{day}</div>
+                        <div style={{ fontSize: 9, color: "#666", marginTop: 2, textTransform: "uppercase" }}>
+                          {new Date(year, month, +day).toLocaleString("default", { weekday: "short" })}
+                        </div>
+                      </div>
+                      <div style={{ width: 1, height: 32, background: tc.border, flexShrink: 0 }} />
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <p style={{ fontSize: 13, fontWeight: 600, color: "#e8e8e6", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{g.client}</p>
+                        <div style={{ display: "flex", alignItems: "center", gap: 5, marginTop: 3 }}>
+                          <span style={{ fontSize: 10, color: "#666" }}>{g.type}</span>
+                          <span style={{ fontSize: 8, color: "#333" }}>●</span>
+                          <span style={{ fontSize: 10, color: g.confirmed ? "#5bb974" : "#a78bfa" }}>{g.confirmed ? "Confirmed" : "Unconfirmed"}</span>
+                        </div>
+                      </div>
+                      <div style={{ textAlign: "right", flexShrink: 0 }}>
+                        <p style={{ fontSize: 13, fontWeight: 600, color: "#e8e8e6" }}>{fmt(g.fee)}</p>
+                        <span style={{ fontSize: 10, color: payColor, fontWeight: 600 }}>{payLabel}</span>
+                      </div>
+                    </button>
+                  );
+                }))
+              }
+            </div>
+          </div>
+        )}
+
+        {Object.keys(gigsByDay).length === 0 && (
+          <div style={{ textAlign: "center", padding: "32px 0 16px", color: "#555", fontSize: 13 }}>
+            No gigs this month. Tap any date to add one.
+          </div>
+        )}
+      </div>
+    </>
   );
 }
 
@@ -437,11 +478,11 @@ function CalendarScreen({ gigs, onGigTap, onAddGig }) {
 function HomeScreen({ stats, recentGigs, onGigTap, onViewAll }) {
   if (!stats) return <Spinner />;
   return (
-    <div style={{ padding: "24px 16px 0" }}>
-      <div style={{ marginBottom: 20 }}>
-        <p style={{ fontSize: 13, color: "#666" }}>Welcome back Anix 👋</p>
-        <h1 style={{ fontSize: 24, fontWeight: 700, marginTop: 2 }}>My Gigs</h1>
-      </div>
+    <div style={{ paddingBottom: 0 }}>
+      <AppHeader
+        title="Payment Tracker"
+        subtitle="Welcome back Anix 👋"
+      />
       <div style={{ background: "#212121", borderRadius: 20, padding: 20, marginBottom: 12, border: "1px solid #2a2a2a" }}>
         <p style={{ fontSize: 12, color: "#666", marginBottom: 6 }}>Total Received</p>
         <p style={{ fontSize: 34, fontWeight: 700, marginBottom: 18 }}>{fmt(stats.totalEarned)}</p>
@@ -478,21 +519,28 @@ function HomeScreen({ stats, recentGigs, onGigTap, onViewAll }) {
 // ─── Gigs Screen ──────────────────────────────────────────────
 function GigsScreen({ gigs, months, filterMonth, setFilterMonth, onGigTap }) {
   return (
-    <div style={{ padding: "24px 16px 0" }}>
-      <h1 style={{ fontSize: 24, fontWeight: 700, marginBottom: 16 }}>All Gigs</h1>
-      <div className="chip-scroll" style={{ marginBottom: 16 }}>
-        {[{ key: "all", label: "All" }, ...months.map(m => ({ key: m, label: monthLabel(m).split(" ")[0] + " " + monthLabel(m).split(" ")[1] }))].map(({ key, label }) => (
-          <button key={key} className="tap" onClick={() => setFilterMonth(key)}
-            style={{ flexShrink: 0, padding: "7px 16px", borderRadius: 20, border: filterMonth === key ? "none" : "1px solid #2a2a2a", fontSize: 13, fontWeight: 500, background: filterMonth === key ? "#c98a3a" : "#212121", color: filterMonth === key ? "#fff" : "#888" }}>
-            {label}
-          </button>
-        ))}
+    <>
+      <AppHeader
+        title="Payment Tracker"
+        subtitle="Welcome back Anix 👋"
+      />
+
+      <div style={{ padding: "18px 16px 0" }}>
+        <h1 style={{ fontSize: 24, fontWeight: 700, marginBottom: 16 }}>All Gigs</h1>
+        <div className="chip-scroll" style={{ marginBottom: 16 }}>
+          {[{ key: "all", label: "All" }, ...months.map(m => ({ key: m, label: monthLabel(m).split(" ")[0] + " " + monthLabel(m).split(" ")[1] }))].map(({ key, label }) => (
+            <button key={key} className="tap" onClick={() => setFilterMonth(key)}
+              style={{ flexShrink: 0, padding: "7px 16px", borderRadius: 20, border: filterMonth === key ? "none" : "1px solid #2a2a2a", fontSize: 13, fontWeight: 500, background: filterMonth === key ? "#c98a3a" : "#212121", color: filterMonth === key ? "#fff" : "#888" }}>
+              {label}
+            </button>
+          ))}
+        </div>
+        {gigs.length === 0
+          ? <p style={{ color: "#555", textAlign: "center", padding: "60px 0", fontSize: 13 }}>No gigs found</p>
+          : <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>{gigs.map(g => <GigCard key={g._id} gig={g} onTap={onGigTap} />)}</div>
+        }
       </div>
-      {gigs.length === 0
-        ? <p style={{ color: "#555", textAlign: "center", padding: "60px 0", fontSize: 13 }}>No gigs found</p>
-        : <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>{gigs.map(g => <GigCard key={g._id} gig={g} onTap={onGigTap} />)}</div>
-      }
-    </div>
+    </>
   );
 }
 
@@ -501,37 +549,44 @@ function StatsScreen({ stats }) {
   if (!stats) return <Spinner />;
   const maxEarned = Math.max(...(stats.monthly || []).map(m => m.earned), 1);
   return (
-    <div style={{ padding: "24px 16px 0" }}>
-      <h1 style={{ fontSize: 24, fontWeight: 700, marginBottom: 20 }}>Stats</h1>
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 24 }}>
-        {[{ label: "Total Received", val: fmt(stats.totalEarned), color: "#5bb974" }, { label: "Total Pending", val: fmt(stats.totalPending), color: "#e07b3a" }, { label: "Confirmed", val: stats.confirmedCount, color: "#5bb974" }, { label: "Unconfirmed", val: stats.unconfirmedCount, color: "#a78bfa" }].map((s, i) => (
-          <div key={i} style={{ background: "#212121", borderRadius: 16, padding: "16px 14px", border: "1px solid #2a2a2a" }}>
-            <p style={{ fontSize: 11, color: "#666", marginBottom: 8 }}>{s.label}</p>
-            <p style={{ fontSize: 20, fontWeight: 700, color: s.color }}>{s.val}</p>
-          </div>
-        ))}
-      </div>
-      <h2 style={{ fontSize: 16, fontWeight: 600, marginBottom: 12 }}>Monthly Breakdown</h2>
-      <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-        {(stats.monthly || []).map(m => (
-          <div key={m.key} style={{ background: "#212121", borderRadius: 16, padding: 16, border: "1px solid #2a2a2a" }}>
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 12 }}>
-              <div>
-                <p style={{ fontSize: 14, fontWeight: 500 }}>{monthLabel(m.key)}</p>
-                <p style={{ fontSize: 11, color: "#555", marginTop: 3 }}>{m.count} gig{m.count !== 1 ? "s" : ""}</p>
+    <>
+      <AppHeader
+        title="Payment Tracker"
+        subtitle="Welcome back Anix 👋"
+      />
+
+      <div style={{ padding: "18px 16px 0" }}>
+        <h1 style={{ fontSize: 24, fontWeight: 700, marginBottom: 20 }}>Stats</h1>
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 24 }}>
+          {[{ label: "Total Received", val: fmt(stats.totalEarned), color: "#5bb974" }, { label: "Total Pending", val: fmt(stats.totalPending), color: "#e07b3a" }, { label: "Confirmed", val: stats.confirmedCount, color: "#5bb974" }, { label: "Unconfirmed", val: stats.unconfirmedCount, color: "#a78bfa" }].map((s, i) => (
+            <div key={i} style={{ background: "#212121", borderRadius: 16, padding: "16px 14px", border: "1px solid #2a2a2a" }}>
+              <p style={{ fontSize: 11, color: "#666", marginBottom: 8 }}>{s.label}</p>
+              <p style={{ fontSize: 20, fontWeight: 700, color: s.color }}>{s.val}</p>
+            </div>
+          ))}
+        </div>
+        <h2 style={{ fontSize: 16, fontWeight: 600, marginBottom: 12 }}>Monthly Breakdown</h2>
+        <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+          {(stats.monthly || []).map(m => (
+            <div key={m.key} style={{ background: "#212121", borderRadius: 16, padding: 16, border: "1px solid #2a2a2a" }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 12 }}>
+                <div>
+                  <p style={{ fontSize: 14, fontWeight: 500 }}>{monthLabel(m.key)}</p>
+                  <p style={{ fontSize: 11, color: "#555", marginTop: 3 }}>{m.count} gig{m.count !== 1 ? "s" : ""}</p>
+                </div>
+                <div style={{ textAlign: "right" }}>
+                  <p style={{ fontSize: 14, fontWeight: 600, color: "#5bb974" }}>{fmt(m.earned)}</p>
+                  {m.pending > 0 && <p style={{ fontSize: 11, color: "#e07b3a", marginTop: 3 }}>{fmt(m.pending)} pending</p>}
+                </div>
               </div>
-              <div style={{ textAlign: "right" }}>
-                <p style={{ fontSize: 14, fontWeight: 600, color: "#5bb974" }}>{fmt(m.earned)}</p>
-                {m.pending > 0 && <p style={{ fontSize: 11, color: "#e07b3a", marginTop: 3 }}>{fmt(m.pending)} pending</p>}
+              <div style={{ height: 4, background: "#2a2a2a", borderRadius: 2 }}>
+                <div style={{ height: 4, width: `${(m.earned / maxEarned) * 100}%`, background: "#5bb974", borderRadius: 2 }} />
               </div>
             </div>
-            <div style={{ height: 4, background: "#2a2a2a", borderRadius: 2 }}>
-              <div style={{ height: 4, width: `${(m.earned / maxEarned) * 100}%`, background: "#5bb974", borderRadius: 2 }} />
-            </div>
-          </div>
-        ))}
+          ))}
+        </div>
       </div>
-    </div>
+    </>
   );
 }
 
