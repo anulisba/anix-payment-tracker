@@ -9,9 +9,25 @@ const api = {
   updateGig: (id, body) => fetch(`${API}?action=gig&id=${id}`, { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) }).then(r => r.json()),
   deleteGig: (id) => fetch(`${API}?action=delete&id=${id}`, { method: "POST" }).then(r => r.json()),
   toggleConfirm: (id) => fetch(`${API}?action=confirm&id=${id}`, { method: "POST" }).then(r => r.json()),
+  getExpenses: () => fetch(`${API}?action=expenses`).then(r => r.json()),
+  createExpense: (body) => fetch(`${API}?action=expenses`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) }).then(r => r.json()),
+  updateExpense: (id, body) => fetch(`${API}?action=expense&id=${id}`, { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) }).then(r => r.json()),
+  deleteExpense: (id) => fetch(`${API}?action=deleteExpense&id=${id}`, { method: "POST" }).then(r => r.json()),
 };
 
 const GIG_TYPES = ["Wedding", "Club Night", "Private Party", "Festival", "Corporate", "Acoustic Set", "Birthday", "Other"];
+const EXPENSE_CATEGORIES = ["Travel", "Food", "Entertainment", "Essentials", "EMI", "Savings", "Gear", "Other"];
+
+const EXPENSE_CATEGORY_COLORS = {
+  "Travel": { bg: "#1a1f3a", border: "#3b4a8a", text: "#6b8cff", icon: "✈️" },
+  "Food": { bg: "#2e1f1a", border: "#8a4a2a", text: "#e07b3a", icon: "🍜" },
+  "Entertainment": { bg: "#1f1a2e", border: "#5b3a8a", text: "#b06bff", icon: "🎬" },
+  "Essentials": { bg: "#1a2a2e", border: "#2a6b7a", text: "#4bbfd4", icon: "🛒" },
+  "EMI": { bg: "#2e1a1f", border: "#8a2a4a", text: "#e05c7a", icon: "🏦" },
+  "Savings": { bg: "#1a2e1f", border: "#2a6b3a", text: "#5bb974", icon: "💰" },
+  "Gear": { bg: "#2e2a1a", border: "#8a762a", text: "#d4b94b", icon: "🎛️" },
+  "Other": { bg: "#212121", border: "#444", text: "#888", icon: "📦" },
+};
 
 const TYPE_COLORS = {
   "Wedding": { bg: "#1a1f3a", border: "#3b4a8a", text: "#6b8cff" },
@@ -24,6 +40,11 @@ const TYPE_COLORS = {
   "Other": { bg: "#212121", border: "#444", text: "#888" },
 };
 
+const SLOT_COLORS = {
+  "Morning": { color: "#f5c842", bg: "rgba(245,200,66,0.12)", border: "rgba(245,200,66,0.25)" },
+  "Evening": { color: "#b06bff", bg: "rgba(176,107,255,0.12)", border: "rgba(176,107,255,0.25)" },
+};
+
 function payStatus(g) {
   if (g.paid >= g.fee) return "paid";
   if (g.paid > 0) return "partial";
@@ -33,6 +54,25 @@ function fmt(n) { return "₹" + Number(n).toLocaleString("en-IN"); }
 function monthKey(date) { const d = new Date(date); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`; }
 function monthLabel(key) { const [y, m] = key.split("-"); return new Date(y, m - 1, 1).toLocaleString("default", { month: "long", year: "numeric" }); }
 
+// ─── Slot Badge ────────────────────────────────────────────────
+function SlotBadge({ slot, size = "sm" }) {
+  if (!slot) return null;
+  const sc = SLOT_COLORS[slot];
+  const fs = size === "xs" ? 9 : 11;
+  const px = size === "xs" ? "4px 6px" : "3px 8px";
+  const icon = slot === "Morning" ? "🌅" : "🌙";
+  return (
+    <span style={{
+      fontSize: fs, fontWeight: 700, color: sc.color,
+      background: sc.bg, border: `1px solid ${sc.border}`,
+      borderRadius: 5, padding: px, display: "inline-flex", alignItems: "center", gap: 3, lineHeight: 1.4,
+    }}>
+      {icon} {slot}
+    </span>
+  );
+}
+
+// ─── Toast ─────────────────────────────────────────────────────
 function Toast({ message, type }) {
   if (!message) return null;
   return (
@@ -41,42 +81,16 @@ function Toast({ message, type }) {
     </div>
   );
 }
+
 function AppHeader({ title, subtitle }) {
   return (
-    <div
-      style={{
-        padding: "24px 16px 18px",
-        borderBottom: "1px solid #222",
-        background: "#1a1a1a",
-        position: "sticky",
-        top: 0,
-        zIndex: 20,
-      }}
-    >
-      <h1
-        style={{
-          fontSize: 24,
-          fontWeight: 700,
-          color: "#fff",
-          letterSpacing: "-0.02em",
-        }}
-      >
-        {title}
-      </h1>
-      <p
-        style={{
-          fontSize: 13,
-          color: "#666",
-          marginBottom: 4,
-        }}
-      >
-        {subtitle}
-      </p>
-
-
+    <div style={{ padding: "24px 16px 18px", borderBottom: "1px solid #222", background: "#1a1a1a", position: "sticky", top: 0, zIndex: 20 }}>
+      <h1 style={{ fontSize: 24, fontWeight: 700, color: "#fff", letterSpacing: "-0.02em" }}>{title}</h1>
+      <p style={{ fontSize: 13, color: "#666", marginBottom: 4 }}>{subtitle}</p>
     </div>
   );
 }
+
 function Spinner() {
   return (
     <div style={{ display: "flex", justifyContent: "center", alignItems: "center", padding: "60px 0" }}>
@@ -85,14 +99,51 @@ function Spinner() {
   );
 }
 
+// ─── Slot Picker Modal ─────────────────────────────────────────
+function SlotPickerModal({ dateStr, onSelect, onClose }) {
+  const display = new Date(dateStr + "T00:00:00").toLocaleDateString("en-IN", { weekday: "long", day: "numeric", month: "long" });
+  return (
+    <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.75)", zIndex: 300, display: "flex", alignItems: "flex-end" }}
+      onClick={onClose}>
+      <div onClick={e => e.stopPropagation()}
+        style={{ background: "#1e1e1e", borderRadius: "20px 20px 0 0", padding: "24px 16px 40px", width: "100%", border: "1px solid #2a2a2a" }}>
+        <div style={{ width: 40, height: 4, background: "#333", borderRadius: 2, margin: "0 auto 20px" }} />
+        <p style={{ fontSize: 13, color: "#666", marginBottom: 6, textAlign: "center" }}>Add gig on</p>
+        <p style={{ fontSize: 16, fontWeight: 700, color: "#e8e8e6", marginBottom: 24, textAlign: "center" }}>{display}</p>
+        <div style={{ display: "flex", gap: 12 }}>
+          <button className="tap" onClick={() => onSelect("Morning")}
+            style={{ flex: 1, background: "rgba(245,200,66,0.08)", border: "1px solid rgba(245,200,66,0.25)", borderRadius: 18, padding: "20px 12px", display: "flex", flexDirection: "column", alignItems: "center", gap: 8 }}>
+            <span style={{ fontSize: 32 }}>🌅</span>
+            <span style={{ fontSize: 15, fontWeight: 700, color: "#f5c842" }}>Morning</span>
+            <span style={{ fontSize: 11, color: "#666" }}>Before 12 PM</span>
+          </button>
+          <button className="tap" onClick={() => onSelect("Evening")}
+            style={{ flex: 1, background: "rgba(176,107,255,0.08)", border: "1px solid rgba(176,107,255,0.25)", borderRadius: 18, padding: "20px 12px", display: "flex", flexDirection: "column", alignItems: "center", gap: 8 }}>
+            <span style={{ fontSize: 32 }}>🌙</span>
+            <span style={{ fontSize: 15, fontWeight: 700, color: "#b06bff" }}>Evening</span>
+            <span style={{ fontSize: 11, color: "#666" }}>After 12 PM</span>
+          </button>
+        </div>
+        <button className="tap" onClick={onClose}
+          style={{ marginTop: 14, width: "100%", background: "none", border: "1px solid #2a2a2a", color: "#555", borderRadius: 14, padding: 14, fontSize: 14 }}>
+          Cancel
+        </button>
+      </div>
+    </div>
+  );
+}
+
+// ─── Main App ──────────────────────────────────────────────────
 export default function App() {
   const [gigs, setGigs] = useState([]);
+  const [expenses, setExpenses] = useState([]);
   const [stats, setStats] = useState(null);
   const [loading, setLoading] = useState(true);
   const [tab, setTab] = useState("home");
   const [screen, setScreen] = useState(null);
   const [filterMonth, setFilterMonth] = useState("all");
   const [toast, setToast] = useState(null);
+  const [slotPicker, setSlotPicker] = useState(null); // dateStr
 
   function showToast(message, type = "success") {
     setToast({ message, type });
@@ -101,9 +152,10 @@ export default function App() {
 
   const refresh = useCallback(async () => {
     try {
-      const [gigsRes, statsRes] = await Promise.all([api.getGigs(), api.getStats()]);
+      const [gigsRes, statsRes, expRes] = await Promise.all([api.getGigs(), api.getStats(), api.getExpenses()]);
       if (gigsRes.success) setGigs(gigsRes.data);
       if (statsRes.success) setStats(statsRes.data);
+      if (expRes.success) setExpenses(expRes.data);
     } catch {
       showToast("Could not connect to server", "error");
     }
@@ -147,8 +199,34 @@ export default function App() {
     } catch { showToast("Failed to update", "error"); }
   }
 
-  function openAddWithDate(dateStr) {
-    setScreen({ type: "form", gig: { date: dateStr } });
+  async function saveExpense(form) {
+    try {
+      const res = form._id ? await api.updateExpense(form._id, form) : await api.createExpense(form);
+      if (!res.success) { showToast(res.message, "error"); return; }
+      showToast(form._id ? "Expense updated!" : "Expense added!");
+      await refresh();
+      setScreen(null);
+    } catch { showToast("Failed to save expense", "error"); }
+  }
+
+  async function deleteExpense(id) {
+    try {
+      const res = await api.deleteExpense(id);
+      if (!res.success) { showToast(res.message, "error"); return; }
+      showToast("Expense deleted");
+      await refresh();
+      setScreen(null);
+    } catch { showToast("Failed to delete", "error"); }
+  }
+
+  // Calendar: open slot picker first, then form
+  function openCalendarAdd(dateStr) {
+    setSlotPicker(dateStr);
+  }
+  function handleSlotSelect(slot) {
+    const dateStr = slotPicker;
+    setSlotPicker(null);
+    setScreen({ type: "form", gig: { date: dateStr, slot } });
   }
 
   return (
@@ -170,6 +248,15 @@ export default function App() {
 
       {toast && <Toast message={toast.message} type={toast.type} />}
 
+      {/* Slot picker overlay */}
+      {slotPicker && (
+        <SlotPickerModal
+          dateStr={slotPicker}
+          onSelect={handleSlotSelect}
+          onClose={() => setSlotPicker(null)}
+        />
+      )}
+
       {screen?.type === "detail" && (
         <div className="fade-in" style={{ position: "fixed", inset: 0, background: "#1a1a1a", zIndex: 100, overflowY: "auto" }}>
           <GigDetail gig={screen.gig} onBack={() => setScreen(null)} onEdit={g => setScreen({ type: "form", gig: g })} onDelete={deleteGig} onToggleConfirm={toggleConfirm} />
@@ -180,22 +267,34 @@ export default function App() {
           <GigForm gig={screen.gig} onSave={saveGig} onBack={() => setScreen(null)} />
         </div>
       )}
+      {screen?.type === "expenseDetail" && (
+        <div className="fade-in" style={{ position: "fixed", inset: 0, background: "#1a1a1a", zIndex: 100, overflowY: "auto" }}>
+          <ExpenseDetail expense={screen.expense} onBack={() => setScreen(null)} onEdit={e => setScreen({ type: "expenseForm", expense: e })} onDelete={deleteExpense} />
+        </div>
+      )}
+      {screen?.type === "expenseForm" && (
+        <div className="fade-in" style={{ position: "fixed", inset: 0, background: "#1a1a1a", zIndex: 100, overflowY: "auto" }}>
+          <ExpenseForm expense={screen.expense} onSave={saveExpense} onBack={() => setScreen(null)} />
+        </div>
+      )}
 
       <div style={{ paddingBottom: 80 }}>
         {loading ? <Spinner /> : <>
           {tab === "home" && <HomeScreen stats={stats} recentGigs={[...gigs].sort((a, b) => new Date(b.date) - new Date(a.date)).slice(0, 5)} onGigTap={g => setScreen({ type: "detail", gig: g })} onViewAll={() => setTab("gigs")} />}
           {tab === "gigs" && <GigsScreen gigs={sortedGigs} months={months} filterMonth={filterMonth} setFilterMonth={setFilterMonth} onGigTap={g => setScreen({ type: "detail", gig: g })} />}
-          {tab === "calendar" && <CalendarScreen gigs={gigs} onGigTap={g => setScreen({ type: "detail", gig: g })} onAddGig={openAddWithDate} />}
+          {tab === "calendar" && <CalendarScreen gigs={gigs} onGigTap={g => setScreen({ type: "detail", gig: g })} onAddGig={openCalendarAdd} />}
           {tab === "stats" && <StatsScreen stats={stats} />}
+          {tab === "expense" && <ExpenseScreen expenses={expenses} onExpenseTap={e => setScreen({ type: "expenseDetail", expense: e })} onAdd={() => setScreen({ type: "expenseForm", expense: {} })} />}
         </>}
       </div>
 
-      {/* Bottom nav — 4 tabs + FAB */}
+      {/* Bottom nav */}
       <div style={{ position: "fixed", bottom: 0, left: 0, right: 0, background: "#111", borderTop: "1px solid #252525", display: "flex", alignItems: "center", padding: "0 2px", zIndex: 50, height: 64 }}>
         {[
           { id: "home", label: "Home", icon: <HomeIcon active={tab === "home"} /> },
           { id: "gigs", label: "Gigs", icon: <ListIcon active={tab === "gigs"} /> },
           { id: "calendar", label: "Calendar", icon: <CalIcon active={tab === "calendar"} /> },
+          { id: "expense", label: "Expenses", icon: <WalletIcon active={tab === "expense"} /> },
           { id: "stats", label: "Stats", icon: <ChartIcon active={tab === "stats"} /> },
         ].map(({ id, label, icon }) => (
           <button key={id} className="tap" onClick={() => setTab(id)}
@@ -204,7 +303,14 @@ export default function App() {
             <span style={{ fontSize: 9, fontWeight: tab === id ? 600 : 400 }}>{label}</span>
           </button>
         ))}
-        <button className="tap" onClick={() => setScreen({ type: "form", gig: {} })}
+        <button className="tap"
+          onClick={() => {
+            if (tab === "expense") {
+              setScreen({ type: "expenseForm", expense: {} });
+            } else {
+              setScreen({ type: "form", gig: {} });
+            }
+          }}
           style={{ width: 44, height: 44, borderRadius: 22, background: "#c98a3a", border: "none", color: "#fff", fontSize: 22, display: "flex", alignItems: "center", justifyContent: "center", boxShadow: "0 4px 16px rgba(201,138,58,.4)", margin: "0 4px", flexShrink: 0 }}>
           +
         </button>
@@ -213,18 +319,17 @@ export default function App() {
   );
 }
 
-// ─── Calendar Screen ──────────────────────────────────────────
+// ─── Calendar Screen ───────────────────────────────────────────
 function CalendarScreen({ gigs, onGigTap, onAddGig }) {
   const today = new Date();
   const [year, setYear] = useState(today.getFullYear());
   const [month, setMonth] = useState(today.getMonth());
-  const [dayModal, setDayModal] = useState(null); // {day, gigs[]}
+  const [dayModal, setDayModal] = useState(null);
 
   const firstDayOfWeek = new Date(year, month, 1).getDay();
   const daysInMonth = new Date(year, month + 1, 0).getDate();
   const monthName = new Date(year, month, 1).toLocaleString("default", { month: "long", year: "numeric" });
 
-  // Build gigsByDay map
   const gigsByDay = {};
   gigs.forEach(g => {
     const d = new Date(g.date);
@@ -238,7 +343,6 @@ function CalendarScreen({ gigs, onGigTap, onAddGig }) {
   function prevMonth() { if (month === 0) { setMonth(11); setYear(y => y - 1); } else setMonth(m => m - 1); }
   function nextMonth() { if (month === 11) { setMonth(0); setYear(y => y + 1); } else setMonth(m => m + 1); }
 
-  // Grid cells
   const cells = [...Array(firstDayOfWeek).fill(null), ...Array.from({ length: daysInMonth }, (_, i) => i + 1)];
   while (cells.length % 7 !== 0) cells.push(null);
 
@@ -247,9 +351,8 @@ function CalendarScreen({ gigs, onGigTap, onAddGig }) {
   function handleDayTap(day) {
     const dayGigs = gigsByDay[day] || [];
     if (dayGigs.length === 0) {
-      // Empty day → open add form with date prefilled
       const iso = `${year}-${String(month + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
-      onAddGig(iso);
+      onAddGig(iso); // triggers slot picker
     } else if (dayGigs.length === 1) {
       onGigTap(dayGigs[0]);
     } else {
@@ -259,14 +362,9 @@ function CalendarScreen({ gigs, onGigTap, onAddGig }) {
 
   return (
     <>
-      <AppHeader
-        title="Payment Tracker"
-        subtitle="Welcome back Anix 👋"
-      />
-
+      <AppHeader title="Payment Tracker" subtitle="Welcome back Anix 👋" />
       <div style={{ padding: "18px 16px 0" }}>
 
-        {/* Day modal for multiple gigs */}
         {dayModal && (
           <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.7)", zIndex: 200, display: "flex", alignItems: "flex-end" }}
             onClick={() => setDayModal(null)}>
@@ -284,7 +382,10 @@ function CalendarScreen({ gigs, onGigTap, onAddGig }) {
                       onClick={() => { setDayModal(null); onGigTap(g); }}
                       style={{ background: tc.bg, border: `1px solid ${tc.border}`, borderRadius: 14, padding: "12px 16px", display: "flex", justifyContent: "space-between", alignItems: "center", textAlign: "left" }}>
                       <div>
-                        <p style={{ fontSize: 14, fontWeight: 600, color: "#e8e8e6", marginBottom: 3 }}>{g.client}</p>
+                        <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 3 }}>
+                          <p style={{ fontSize: 14, fontWeight: 600, color: "#e8e8e6" }}>{g.client}</p>
+                          {g.slot && <SlotBadge slot={g.slot} size="xs" />}
+                        </div>
                         <p style={{ fontSize: 11, color: tc.text }}>{g.type} · {g.confirmed ? "Confirmed" : "Unconfirmed"}</p>
                       </div>
                       <div style={{ textAlign: "right" }}>
@@ -310,93 +411,40 @@ function CalendarScreen({ gigs, onGigTap, onAddGig }) {
           </div>
         </div>
 
-        {/* Day-of-week headers */}
-        <div
-          style={{
-            display: "grid",
-            gridTemplateColumns: "repeat(7, minmax(0, 1fr))",
-            gap: 2,
-            marginBottom: 2,
-            width: "100%",
-          }}
-        >
+        {/* Day headers */}
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(7, minmax(0, 1fr))", gap: 2, marginBottom: 2, width: "100%" }}>
           {["Su", "Mo", "Tu", "We", "Th", "Fr", "Sa"].map((d, i) => (
             <div key={i} style={{ textAlign: "center", fontSize: 10, color: "#555", fontWeight: 600, paddingBottom: 6 }}>{d}</div>
           ))}
         </div>
 
         {/* Calendar grid */}
-        <div
-          style={{
-            display: "grid",
-            gridTemplateColumns: "repeat(7, minmax(0, 1fr))",
-            gap: 2,
-            width: "100%",
-          }}
-        >
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(7, minmax(0, 1fr))", gap: 2, width: "100%" }}>
           {cells.map((day, idx) => {
             if (!day) return <div key={`e-${idx}`} style={{ minHeight: 68 }} />;
-
             const dayGigs = gigsByDay[day] || [];
             const hasGigs = dayGigs.length > 0;
             const todayCell = isToday(day);
-            // Use first gig's type color if any
             const firstColor = hasGigs ? (TYPE_COLORS[dayGigs[0].type] || TYPE_COLORS["Other"]) : null;
 
             return (
-              <button key={day} className="cal-cell tap"
-                onClick={() => handleDayTap(day)}
-                style={{
-                  minHeight: 68,
-                  width: "100%",
-                  boxSizing: "border-box",
-                  overflow: "hidden",
-
-                  background: hasGigs ? firstColor.bg : "#181818",
-                  border: `1px solid ${todayCell ? "#c98a3a" : hasGigs ? firstColor.border : "#222"}`,
-                  borderRadius: 9,
-                  padding: "5px 4px 4px",
-
-                  display: "flex",
-                  flexDirection: "column",
-                  alignItems: "stretch",
-                  gap: 2,
-
-                  transition: "border-color 0.12s",
-                }}>
-
-                {/* Day number */}
+              <button key={day} className="cal-cell tap" onClick={() => handleDayTap(day)}
+                style={{ minHeight: 68, width: "100%", boxSizing: "border-box", overflow: "hidden", background: hasGigs ? firstColor.bg : "#181818", border: `1px solid ${todayCell ? "#c98a3a" : hasGigs ? firstColor.border : "#222"}`, borderRadius: 9, padding: "5px 4px 4px", display: "flex", flexDirection: "column", alignItems: "stretch", gap: 2, transition: "border-color 0.12s" }}>
                 <div style={{ display: "flex", justifyContent: "flex-end", paddingRight: 2, marginBottom: 2 }}>
-                  <span style={{
-                    fontSize: 11, fontWeight: todayCell ? 700 : 500, lineHeight: 1,
-                    color: todayCell ? "#c98a3a" : hasGigs ? "#ccc" : "#444",
-                    background: todayCell ? "rgba(201,138,58,0.15)" : "transparent",
-                    borderRadius: 4, padding: "1px 3px",
-                  }}>{day}</span>
+                  <span style={{ fontSize: 11, fontWeight: todayCell ? 700 : 500, lineHeight: 1, color: todayCell ? "#c98a3a" : hasGigs ? "#ccc" : "#444", background: todayCell ? "rgba(201,138,58,0.15)" : "transparent", borderRadius: 4, padding: "1px 3px" }}>{day}</span>
                 </div>
-
-                {/* Gig name tiles — show up to 2 */}
                 {dayGigs.slice(0, 2).map((g, i) => {
                   const tc = TYPE_COLORS[g.type] || TYPE_COLORS["Other"];
+                  const slotIcon = g.slot === "Morning" ? "🌅" : g.slot === "Evening" ? "🌙" : "";
                   return (
-                    <div key={i} style={{
-                      background: tc.bg, border: `1px solid ${tc.border}`,
-                      borderRadius: 4, padding: "2px 3px",
-                      fontSize: 8, color: tc.text, fontWeight: 600,
-                      overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
-                      lineHeight: 1.5,
-                    }}>
-                      {g.client.length > 9 ? g.client.slice(0, 8) + "…" : g.client}
+                    <div key={i} style={{ background: tc.bg, border: `1px solid ${tc.border}`, borderRadius: 4, padding: "2px 3px", fontSize: 8, color: tc.text, fontWeight: 600, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", lineHeight: 1.5 }}>
+                      {slotIcon}{slotIcon ? " " : ""}{g.client.length > 8 ? g.client.slice(0, 7) + "…" : g.client}
                     </div>
                   );
                 })}
-
-                {/* +N overflow */}
                 {dayGigs.length > 2 && (
                   <div style={{ fontSize: 8, color: "#666", textAlign: "center", marginTop: 1 }}>+{dayGigs.length - 2}</div>
                 )}
-
-                {/* Empty day hint */}
                 {!hasGigs && (
                   <div style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center" }}>
                     <span style={{ fontSize: 14, color: "#2a2a2a" }}>+</span>
@@ -407,7 +455,7 @@ function CalendarScreen({ gigs, onGigTap, onAddGig }) {
           })}
         </div>
 
-        {/* Color legend */}
+        {/* Legend */}
         <div style={{ marginTop: 16, padding: "12px", background: "#181818", borderRadius: 12, border: "1px solid #222" }}>
           <p style={{ fontSize: 9, color: "#555", marginBottom: 8, textTransform: "uppercase", letterSpacing: "0.1em" }}>Type Colors</p>
           <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
@@ -420,47 +468,46 @@ function CalendarScreen({ gigs, onGigTap, onAddGig }) {
           </div>
         </div>
 
-        {/* This month list */}
+        {/* Month list */}
         {Object.keys(gigsByDay).length > 0 && (
           <div style={{ marginTop: 16 }}>
             <p style={{ fontSize: 12, fontWeight: 600, color: "#666", marginBottom: 10 }}>
               {monthName} — {Object.values(gigsByDay).flat().length} gig{Object.values(gigsByDay).flat().length !== 1 ? "s" : ""}
             </p>
             <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-              {Object.entries(gigsByDay)
-                .sort(([a], [b]) => +a - +b)
-                .flatMap(([day, gs]) => gs.map(g => {
-                  const tc = TYPE_COLORS[g.type] || TYPE_COLORS["Other"];
-                  const status = payStatus(g);
-                  const payColor = status === "paid" ? "#5bb974" : status === "partial" ? "#e07b3a" : "#e05c5c";
-                  const payLabel = status === "paid" ? "Paid" : status === "partial" ? "Partial" : "Unpaid";
-                  return (
-                    <button key={g._id} className="tap"
-                      onClick={() => onGigTap(g)}
-                      style={{ background: tc.bg, border: `1px solid ${tc.border}`, borderRadius: 12, padding: "10px 14px", display: "flex", alignItems: "center", gap: 12, textAlign: "left" }}>
-                      <div style={{ width: 36, textAlign: "center", flexShrink: 0 }}>
-                        <div style={{ fontSize: 18, fontWeight: 700, color: tc.text, lineHeight: 1 }}>{day}</div>
-                        <div style={{ fontSize: 9, color: "#666", marginTop: 2, textTransform: "uppercase" }}>
-                          {new Date(year, month, +day).toLocaleString("default", { weekday: "short" })}
-                        </div>
+              {Object.entries(gigsByDay).sort(([a], [b]) => +a - +b).flatMap(([day, gs]) => gs.map(g => {
+                const tc = TYPE_COLORS[g.type] || TYPE_COLORS["Other"];
+                const status = payStatus(g);
+                const payColor = status === "paid" ? "#5bb974" : status === "partial" ? "#e07b3a" : "#e05c5c";
+                const payLabel = status === "paid" ? "Paid" : status === "partial" ? "Partial" : "Unpaid";
+                return (
+                  <button key={g._id} className="tap" onClick={() => onGigTap(g)}
+                    style={{ background: tc.bg, border: `1px solid ${tc.border}`, borderRadius: 12, padding: "10px 14px", display: "flex", alignItems: "center", gap: 12, textAlign: "left" }}>
+                    <div style={{ width: 36, textAlign: "center", flexShrink: 0 }}>
+                      <div style={{ fontSize: 18, fontWeight: 700, color: tc.text, lineHeight: 1 }}>{day}</div>
+                      <div style={{ fontSize: 9, color: "#666", marginTop: 2, textTransform: "uppercase" }}>
+                        {new Date(year, month, +day).toLocaleString("default", { weekday: "short" })}
                       </div>
-                      <div style={{ width: 1, height: 32, background: tc.border, flexShrink: 0 }} />
-                      <div style={{ flex: 1, minWidth: 0 }}>
+                    </div>
+                    <div style={{ width: 1, height: 32, background: tc.border, flexShrink: 0 }} />
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 3 }}>
                         <p style={{ fontSize: 13, fontWeight: 600, color: "#e8e8e6", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{g.client}</p>
-                        <div style={{ display: "flex", alignItems: "center", gap: 5, marginTop: 3 }}>
-                          <span style={{ fontSize: 10, color: "#666" }}>{g.type}</span>
-                          <span style={{ fontSize: 8, color: "#333" }}>●</span>
-                          <span style={{ fontSize: 10, color: g.confirmed ? "#5bb974" : "#a78bfa" }}>{g.confirmed ? "Confirmed" : "Unconfirmed"}</span>
-                        </div>
+                        {g.slot && <SlotBadge slot={g.slot} size="xs" />}
                       </div>
-                      <div style={{ textAlign: "right", flexShrink: 0 }}>
-                        <p style={{ fontSize: 13, fontWeight: 600, color: "#e8e8e6" }}>{fmt(g.fee)}</p>
-                        <span style={{ fontSize: 10, color: payColor, fontWeight: 600 }}>{payLabel}</span>
+                      <div style={{ display: "flex", alignItems: "center", gap: 5, marginTop: 1 }}>
+                        <span style={{ fontSize: 10, color: "#666" }}>{g.type}</span>
+                        <span style={{ fontSize: 8, color: "#333" }}>●</span>
+                        <span style={{ fontSize: 10, color: g.confirmed ? "#5bb974" : "#a78bfa" }}>{g.confirmed ? "Confirmed" : "Unconfirmed"}</span>
                       </div>
-                    </button>
-                  );
-                }))
-              }
+                    </div>
+                    <div style={{ textAlign: "right", flexShrink: 0 }}>
+                      <p style={{ fontSize: 13, fontWeight: 600, color: "#e8e8e6" }}>{fmt(g.fee)}</p>
+                      <span style={{ fontSize: 10, color: payColor, fontWeight: 600 }}>{payLabel}</span>
+                    </div>
+                  </button>
+                );
+              }))}
             </div>
           </div>
         )}
@@ -475,57 +522,56 @@ function CalendarScreen({ gigs, onGigTap, onAddGig }) {
   );
 }
 
-// ─── Home Screen ──────────────────────────────────────────────
+// ─── Home Screen ───────────────────────────────────────────────
 function HomeScreen({ stats, recentGigs, onGigTap, onViewAll }) {
   if (!stats) return <Spinner />;
   return (
-    <div style={{ paddingBottom: 0 }}>
-      <AppHeader
-        title="Payment Tracker"
-        subtitle="Welcome back Anix 👋"
-      />
-      <div style={{ background: "#212121", borderRadius: 20, padding: 20, marginBottom: 12, border: "1px solid #2a2a2a" }}>
-        <p style={{ fontSize: 12, color: "#666", marginBottom: 6 }}>Total Received</p>
-        <p style={{ fontSize: 34, fontWeight: 700, marginBottom: 18 }}>{fmt(stats.totalEarned)}</p>
-        <div style={{ height: 1, background: "#2a2a2a", marginBottom: 18 }} />
-        <div style={{ display: "flex", justifyContent: "space-between" }}>
-          <div>
-            <p style={{ fontSize: 11, color: "#666", marginBottom: 4 }}>Pending</p>
-            <p style={{ fontSize: 18, fontWeight: 600, color: "#e07b3a" }}>{fmt(stats.totalPending)}</p>
-          </div>
-          <div style={{ textAlign: "right" }}>
-            <p style={{ fontSize: 11, color: "#666", marginBottom: 4 }}>Unconfirmed</p>
-            <p style={{ fontSize: 18, fontWeight: 600, color: stats.unconfirmedCount > 0 ? "#a78bfa" : "#5bb974" }}>{stats.unconfirmedCount} gig{stats.unconfirmedCount !== 1 ? "s" : ""}</p>
+    <div>
+      <AppHeader title="Payment Tracker" subtitle="Welcome back Anix 👋" />
+      <div style={{ padding: "16px 16px 0" }}>
+        <div style={{ background: "#212121", borderRadius: 20, padding: 20, marginBottom: 12, border: "1px solid #2a2a2a" }}>
+          <p style={{ fontSize: 12, color: "#666", marginBottom: 6 }}>Total Received</p>
+          <p style={{ fontSize: 34, fontWeight: 700, marginBottom: 18 }}>{fmt(stats.totalEarned)}</p>
+          <div style={{ height: 1, background: "#2a2a2a", marginBottom: 18 }} />
+          <div style={{ display: "flex", justifyContent: "space-between" }}>
+            <div>
+              <p style={{ fontSize: 11, color: "#666", marginBottom: 4 }}>Pending (due)</p>
+              <p style={{ fontSize: 18, fontWeight: 600, color: "#e07b3a" }}>{fmt(stats.totalPending)}</p>
+            </div>
+            <div style={{ textAlign: "center" }}>
+              <p style={{ fontSize: 11, color: "#666", marginBottom: 4 }}>Total Spent</p>
+              <p style={{ fontSize: 18, fontWeight: 600, color: "#e05c7a" }}>{fmt(stats.totalExpenses || 0)}</p>
+            </div>
+            <div style={{ textAlign: "right" }}>
+              <p style={{ fontSize: 11, color: "#666", marginBottom: 4 }}>Unconfirmed</p>
+              <p style={{ fontSize: 18, fontWeight: 600, color: stats.unconfirmedCount > 0 ? "#a78bfa" : "#5bb974" }}>{stats.unconfirmedCount} gig{stats.unconfirmedCount !== 1 ? "s" : ""}</p>
+            </div>
           </div>
         </div>
-      </div>
-      {stats.unconfirmedCount > 0 && (
-        <div style={{ background: "#1e1828", border: "1px solid #3b2f6b", borderRadius: 14, padding: "12px 16px", marginBottom: 16, display: "flex", alignItems: "center", gap: 10 }}>
-          <span style={{ fontSize: 16 }}>⚠️</span>
-          <p style={{ fontSize: 13, color: "#c4b5fd" }}><strong>{stats.unconfirmedCount}</strong> gig{stats.unconfirmedCount !== 1 ? "s" : ""} waiting for confirmation</p>
+        {stats.unconfirmedCount > 0 && (
+          <div style={{ background: "#1e1828", border: "1px solid #3b2f6b", borderRadius: 14, padding: "12px 16px", marginBottom: 16, display: "flex", alignItems: "center", gap: 10 }}>
+            <span style={{ fontSize: 16 }}>⚠️</span>
+            <p style={{ fontSize: 13, color: "#c4b5fd" }}><strong>{stats.unconfirmedCount}</strong> gig{stats.unconfirmedCount !== 1 ? "s" : ""} waiting for confirmation</p>
+          </div>
+        )}
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12, marginTop: 24 }}>
+          <h2 style={{ fontSize: 16, fontWeight: 600 }}>Recent Gigs</h2>
+          <button className="tap" onClick={onViewAll} style={{ background: "none", border: "none", color: "#c98a3a", fontSize: 13 }}>See all</button>
         </div>
-      )}
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12, marginTop: 24 }}>
-        <h2 style={{ fontSize: 16, fontWeight: 600 }}>Recent Gigs</h2>
-        <button className="tap" onClick={onViewAll} style={{ background: "none", border: "none", color: "#c98a3a", fontSize: 13 }}>See all</button>
+        {recentGigs.length === 0
+          ? <p style={{ color: "#555", textAlign: "center", padding: "40px 0", fontSize: 13 }}>No gigs yet. Tap + to add one!</p>
+          : <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>{recentGigs.map(g => <GigCard key={g._id} gig={g} onTap={onGigTap} />)}</div>
+        }
       </div>
-      {recentGigs.length === 0
-        ? <p style={{ color: "#555", textAlign: "center", padding: "40px 0", fontSize: 13 }}>No gigs yet. Tap + to add one!</p>
-        : <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>{recentGigs.map(g => <GigCard key={g._id} gig={g} onTap={onGigTap} />)}</div>
-      }
     </div>
   );
 }
 
-// ─── Gigs Screen ──────────────────────────────────────────────
+// ─── Gigs Screen ───────────────────────────────────────────────
 function GigsScreen({ gigs, months, filterMonth, setFilterMonth, onGigTap }) {
   return (
     <>
-      <AppHeader
-        title="Payment Tracker"
-        subtitle="Welcome back Anix 👋"
-      />
-
+      <AppHeader title="Payment Tracker" subtitle="Welcome back Anix 👋" />
       <div style={{ padding: "18px 16px 0" }}>
         <h1 style={{ fontSize: 24, fontWeight: 700, marginBottom: 16 }}>All Gigs</h1>
         <div className="chip-scroll" style={{ marginBottom: 16 }}>
@@ -545,53 +591,355 @@ function GigsScreen({ gigs, months, filterMonth, setFilterMonth, onGigTap }) {
   );
 }
 
-// ─── Stats Screen ─────────────────────────────────────────────
+// ─── Stats Screen ──────────────────────────────────────────────
 function StatsScreen({ stats }) {
   if (!stats) return <Spinner />;
+  const [activeSection, setActiveSection] = useState("income");
   const maxEarned = Math.max(...(stats.monthly || []).map(m => m.earned), 1);
+  const maxExpense = Math.max(...(stats.monthlyExpenses || []).map(m => m.total), 1);
+
   return (
     <>
-      <AppHeader
-        title="Payment Tracker"
-        subtitle="Welcome back Anix 👋"
-      />
-
+      <AppHeader title="Payment Tracker" subtitle="Welcome back Anix 👋" />
       <div style={{ padding: "18px 16px 0" }}>
         <h1 style={{ fontSize: 24, fontWeight: 700, marginBottom: 20 }}>Stats</h1>
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 24 }}>
-          {[{ label: "Total Received", val: fmt(stats.totalEarned), color: "#5bb974" }, { label: "Total Pending", val: fmt(stats.totalPending), color: "#e07b3a" }, { label: "Confirmed", val: stats.confirmedCount, color: "#5bb974" }, { label: "Unconfirmed", val: stats.unconfirmedCount, color: "#a78bfa" }].map((s, i) => (
+
+        {/* Top summary row */}
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 20 }}>
+          {[
+            { label: "Total Received", val: fmt(stats.totalEarned), color: "#5bb974" },
+            { label: "Pending (due)", val: fmt(stats.totalPending), color: "#e07b3a" },
+            { label: "Total Spent", val: fmt(stats.totalExpenses || 0), color: "#e05c7a" },
+            { label: "Net Balance", val: fmt((stats.totalEarned || 0) - (stats.totalExpenses || 0)), color: "#4bbfd4" },
+          ].map((s, i) => (
             <div key={i} style={{ background: "#212121", borderRadius: 16, padding: "16px 14px", border: "1px solid #2a2a2a" }}>
               <p style={{ fontSize: 11, color: "#666", marginBottom: 8 }}>{s.label}</p>
               <p style={{ fontSize: 20, fontWeight: 700, color: s.color }}>{s.val}</p>
             </div>
           ))}
         </div>
-        <h2 style={{ fontSize: 16, fontWeight: 600, marginBottom: 12 }}>Monthly Breakdown</h2>
-        <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-          {(stats.monthly || []).map(m => (
-            <div key={m.key} style={{ background: "#212121", borderRadius: 16, padding: 16, border: "1px solid #2a2a2a" }}>
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 12 }}>
-                <div>
-                  <p style={{ fontSize: 14, fontWeight: 500 }}>{monthLabel(m.key)}</p>
-                  <p style={{ fontSize: 11, color: "#555", marginTop: 3 }}>{m.count} gig{m.count !== 1 ? "s" : ""}</p>
-                </div>
-                <div style={{ textAlign: "right" }}>
-                  <p style={{ fontSize: 14, fontWeight: 600, color: "#5bb974" }}>{fmt(m.earned)}</p>
-                  {m.pending > 0 && <p style={{ fontSize: 11, color: "#e07b3a", marginTop: 3 }}>{fmt(m.pending)} pending</p>}
-                </div>
-              </div>
-              <div style={{ height: 4, background: "#2a2a2a", borderRadius: 2 }}>
-                <div style={{ height: 4, width: `${(m.earned / maxEarned) * 100}%`, background: "#5bb974", borderRadius: 2 }} />
-              </div>
-            </div>
+
+        {/* Section toggle */}
+        <div style={{ display: "flex", gap: 8, marginBottom: 20 }}>
+          {[{ id: "income", label: "Income" }, { id: "expenses", label: "Expenses" }].map(s => (
+            <button key={s.id} className="tap" onClick={() => setActiveSection(s.id)}
+              style={{ flex: 1, padding: "10px 0", borderRadius: 12, border: activeSection === s.id ? "none" : "1px solid #2a2a2a", fontSize: 13, fontWeight: 600, background: activeSection === s.id ? "#c98a3a" : "#212121", color: activeSection === s.id ? "#fff" : "#666" }}>
+              {s.label}
+            </button>
           ))}
         </div>
+
+        {activeSection === "income" && (
+          <>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 20 }}>
+              {[
+                { label: "Confirmed", val: stats.confirmedCount, color: "#5bb974" },
+                { label: "Unconfirmed", val: stats.unconfirmedCount, color: "#a78bfa" },
+              ].map((s, i) => (
+                <div key={i} style={{ background: "#212121", borderRadius: 16, padding: "16px 14px", border: "1px solid #2a2a2a" }}>
+                  <p style={{ fontSize: 11, color: "#666", marginBottom: 8 }}>{s.label}</p>
+                  <p style={{ fontSize: 20, fontWeight: 700, color: s.color }}>{s.val}</p>
+                </div>
+              ))}
+            </div>
+            <h2 style={{ fontSize: 16, fontWeight: 600, marginBottom: 12 }}>Monthly Income</h2>
+            <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+              {(stats.monthly || []).map(m => (
+                <div key={m.key} style={{ background: "#212121", borderRadius: 16, padding: 16, border: "1px solid #2a2a2a" }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 12 }}>
+                    <div>
+                      <p style={{ fontSize: 14, fontWeight: 500 }}>{monthLabel(m.key)}</p>
+                      <p style={{ fontSize: 11, color: "#555", marginTop: 3 }}>{m.count} gig{m.count !== 1 ? "s" : ""}</p>
+                    </div>
+                    <div style={{ textAlign: "right" }}>
+                      <p style={{ fontSize: 14, fontWeight: 600, color: "#5bb974" }}>{fmt(m.earned)}</p>
+                      {m.pending > 0 && <p style={{ fontSize: 11, color: "#e07b3a", marginTop: 3 }}>{fmt(m.pending)} pending</p>}
+                    </div>
+                  </div>
+                  <div style={{ height: 4, background: "#2a2a2a", borderRadius: 2 }}>
+                    <div style={{ height: 4, width: `${(m.earned / maxEarned) * 100}%`, background: "#5bb974", borderRadius: 2 }} />
+                  </div>
+                </div>
+              ))}
+            </div>
+          </>
+        )}
+
+        {activeSection === "expenses" && (
+          <>
+            <h2 style={{ fontSize: 16, fontWeight: 600, marginBottom: 12 }}>Monthly Expenses</h2>
+            <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+              {(stats.monthlyExpenses || []).map(m => (
+                <div key={m.key} style={{ background: "#212121", borderRadius: 16, padding: 16, border: "1px solid #2a2a2a" }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 12 }}>
+                    <div>
+                      <p style={{ fontSize: 14, fontWeight: 500 }}>{monthLabel(m.key)}</p>
+                      <p style={{ fontSize: 11, color: "#555", marginTop: 3 }}>{m.count} expense{m.count !== 1 ? "s" : ""}</p>
+                    </div>
+                    <p style={{ fontSize: 14, fontWeight: 600, color: "#e05c7a" }}>{fmt(m.total)}</p>
+                  </div>
+                  <div style={{ height: 4, background: "#2a2a2a", borderRadius: 2, marginBottom: 12 }}>
+                    <div style={{ height: 4, width: `${(m.total / maxExpense) * 100}%`, background: "#e05c7a", borderRadius: 2 }} />
+                  </div>
+                  {/* Category breakdown */}
+                  <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
+                    {Object.entries(m.byCategory || {}).sort(([, a], [, b]) => b - a).map(([cat, amt]) => {
+                      const cc = EXPENSE_CATEGORY_COLORS[cat] || EXPENSE_CATEGORY_COLORS["Other"];
+                      return (
+                        <div key={cat} style={{ background: cc.bg, border: `1px solid ${cc.border}`, borderRadius: 8, padding: "4px 8px", display: "flex", alignItems: "center", gap: 4 }}>
+                          <span style={{ fontSize: 10 }}>{cc.icon}</span>
+                          <span style={{ fontSize: 10, color: cc.text, fontWeight: 600 }}>{cat}</span>
+                          <span style={{ fontSize: 10, color: "#666" }}>{fmt(amt)}</span>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              ))}
+              {(!stats.monthlyExpenses || stats.monthlyExpenses.length === 0) && (
+                <p style={{ color: "#555", textAlign: "center", padding: "40px 0", fontSize: 13 }}>No expenses recorded yet.</p>
+              )}
+            </div>
+          </>
+        )}
       </div>
     </>
   );
 }
 
-// ─── Gig Card ─────────────────────────────────────────────────
+// ─── Expense Screen ────────────────────────────────────────────
+function ExpenseScreen({ expenses, onExpenseTap, onAdd }) {
+  const months = [...new Set(expenses.map(e => monthKey(e.date)))].sort().reverse();
+  const [filterMonth, setFilterMonth] = useState("all");
+  const [filterCat, setFilterCat] = useState("all");
+
+  const visible = expenses
+    .filter(e => filterMonth === "all" || monthKey(e.date) === filterMonth)
+    .filter(e => filterCat === "all" || e.category === filterCat)
+    .sort((a, b) => new Date(b.date) - new Date(a.date));
+
+  const totalVisible = visible.reduce((s, e) => s + e.amount, 0);
+
+  // Category totals for visible
+  const catTotals = {};
+  visible.forEach(e => { catTotals[e.category] = (catTotals[e.category] || 0) + e.amount; });
+  const topCat = Object.entries(catTotals).sort(([, a], [, b]) => b - a)[0];
+
+  return (
+    <>
+      <AppHeader title="Payment Tracker" subtitle="Welcome back Anix 👋" />
+      <div style={{ padding: "18px 16px 0" }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
+          <h1 style={{ fontSize: 24, fontWeight: 700 }}>Expenses</h1>
+          <button className="tap" onClick={onAdd}
+            style={{ background: "#c98a3a", border: "none", color: "#fff", borderRadius: 12, padding: "8px 16px", fontSize: 13, fontWeight: 600 }}>
+            + Add
+          </button>
+        </div>
+
+        {/* Summary card */}
+        {visible.length > 0 && (
+          <div style={{ background: "#212121", borderRadius: 18, padding: "16px 18px", marginBottom: 16, border: "1px solid #2a2a2a" }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
+              <div>
+                <p style={{ fontSize: 11, color: "#666", marginBottom: 4 }}>{filterMonth === "all" ? "All Time" : monthLabel(filterMonth)}</p>
+                <p style={{ fontSize: 28, fontWeight: 700, color: "#e05c7a" }}>{fmt(totalVisible)}</p>
+                <p style={{ fontSize: 11, color: "#555", marginTop: 4 }}>{visible.length} transaction{visible.length !== 1 ? "s" : ""}</p>
+              </div>
+              {topCat && (
+                <div style={{ textAlign: "right" }}>
+                  <p style={{ fontSize: 10, color: "#555", marginBottom: 4 }}>Top category</p>
+                  <div style={{ display: "flex", alignItems: "center", gap: 4, justifyContent: "flex-end" }}>
+                    <span style={{ fontSize: 14 }}>{EXPENSE_CATEGORY_COLORS[topCat[0]]?.icon}</span>
+                    <span style={{ fontSize: 13, fontWeight: 600, color: EXPENSE_CATEGORY_COLORS[topCat[0]]?.text }}>{topCat[0]}</span>
+                  </div>
+                  <p style={{ fontSize: 12, color: "#666", marginTop: 2 }}>{fmt(topCat[1])}</p>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* Month filter */}
+        <div className="chip-scroll" style={{ marginBottom: 10 }}>
+          {[{ key: "all", label: "All" }, ...months.map(m => ({ key: m, label: monthLabel(m).split(" ")[0] + " '" + monthLabel(m).split(" ")[1].slice(2) }))].map(({ key, label }) => (
+            <button key={key} className="tap" onClick={() => setFilterMonth(key)}
+              style={{ flexShrink: 0, padding: "7px 14px", borderRadius: 20, border: filterMonth === key ? "none" : "1px solid #2a2a2a", fontSize: 12, fontWeight: 500, background: filterMonth === key ? "#c98a3a" : "#212121", color: filterMonth === key ? "#fff" : "#888" }}>
+              {label}
+            </button>
+          ))}
+        </div>
+
+        {/* Category filter */}
+        <div className="chip-scroll" style={{ marginBottom: 16 }}>
+          {[{ key: "all", label: "All Categories" }, ...EXPENSE_CATEGORIES.map(c => ({ key: c, label: `${EXPENSE_CATEGORY_COLORS[c]?.icon} ${c}` }))].map(({ key, label }) => (
+            <button key={key} className="tap" onClick={() => setFilterCat(key)}
+              style={{ flexShrink: 0, padding: "6px 12px", borderRadius: 20, border: filterCat === key ? "none" : "1px solid #2a2a2a", fontSize: 11, fontWeight: 500, background: filterCat === key ? "#333" : "#1a1a1a", color: filterCat === key ? "#e8e8e6" : "#666", outline: filterCat === key ? "1px solid #555" : "none" }}>
+              {label}
+            </button>
+          ))}
+        </div>
+
+        {visible.length === 0
+          ? <p style={{ color: "#555", textAlign: "center", padding: "60px 0", fontSize: 13 }}>No expenses found. Tap + to add one.</p>
+          : <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+            {visible.map(e => <ExpenseCard key={e._id} expense={e} onTap={onExpenseTap} />)}
+          </div>
+        }
+      </div>
+    </>
+  );
+}
+
+// ─── Expense Card ──────────────────────────────────────────────
+function ExpenseCard({ expense, onTap }) {
+  const cc = EXPENSE_CATEGORY_COLORS[expense.category] || EXPENSE_CATEGORY_COLORS["Other"];
+  return (
+    <button className="tap row" onClick={() => onTap(expense)}
+      style={{ width: "100%", background: cc.bg, border: `1px solid ${cc.border}`, borderRadius: 16, padding: "14px 16px", textAlign: "left", display: "flex", alignItems: "center", gap: 12 }}>
+      <div style={{ width: 38, height: 38, borderRadius: 12, background: "rgba(255,255,255,0.05)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 20, flexShrink: 0 }}>
+        {cc.icon}
+      </div>
+      <div style={{ flex: 1, minWidth: 0 }}>
+        <p style={{ fontSize: 14, fontWeight: 600, color: "#e8e8e6", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{expense.description}</p>
+        <p style={{ fontSize: 12, color: "#555", marginTop: 2 }}>
+          {new Date(expense.date).toLocaleDateString("en-IN", { day: "numeric", month: "short" })} · <span style={{ color: cc.text }}>{expense.category}</span>
+        </p>
+      </div>
+      <p style={{ fontSize: 15, fontWeight: 700, color: "#e05c7a", flexShrink: 0 }}>{fmt(expense.amount)}</p>
+    </button>
+  );
+}
+
+// ─── Expense Detail ────────────────────────────────────────────
+function ExpenseDetail({ expense, onBack, onEdit, onDelete }) {
+  const [deleting, setDeleting] = useState(false);
+  const cc = EXPENSE_CATEGORY_COLORS[expense.category] || EXPENSE_CATEGORY_COLORS["Other"];
+
+  async function handleDelete() {
+    if (!window.confirm("Delete this expense?")) return;
+    setDeleting(true);
+    await onDelete(expense._id);
+    setDeleting(false);
+  }
+
+  return (
+    <div style={{ padding: "20px 16px" }}>
+      <button className="tap" onClick={onBack} style={{ background: "none", border: "none", color: "#c98a3a", fontSize: 14, padding: 0, marginBottom: 24 }}>← Back</button>
+      <div style={{ display: "flex", alignItems: "center", gap: 14, marginBottom: 20 }}>
+        <div style={{ width: 52, height: 52, borderRadius: 16, background: cc.bg, border: `1px solid ${cc.border}`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 26 }}>
+          {cc.icon}
+        </div>
+        <div>
+          <h1 style={{ fontSize: 20, fontWeight: 700, color: "white" }}>{expense.description}</h1>
+          <p style={{ fontSize: 12, color: "#666", marginTop: 4 }}>{expense.category} · {new Date(expense.date).toLocaleDateString("en-IN", { day: "numeric", month: "long", year: "numeric" })}</p>
+        </div>
+      </div>
+      <div style={{ background: "#212121", borderRadius: 18, overflow: "hidden", marginBottom: 20, border: "1px solid #2a2a2a" }}>
+        <div style={{ padding: "20px 18px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+          <span style={{ fontSize: 14, color: "#888" }}>Amount</span>
+          <span style={{ fontSize: 24, fontWeight: 700, color: "#e05c7a" }}>{fmt(expense.amount)}</span>
+        </div>
+      </div>
+      {expense.notes && (
+        <div style={{ background: "#212121", borderRadius: 14, padding: "14px 16px", marginBottom: 20, border: "1px solid #2a2a2a" }}>
+          <p style={{ fontSize: 11, color: "#555", marginBottom: 6, textTransform: "uppercase", letterSpacing: "0.05em" }}>Notes</p>
+          <p style={{ fontSize: 14, color: "#aaa" }}>{expense.notes}</p>
+        </div>
+      )}
+      <div style={{ display: "flex", gap: 10 }}>
+        <button className="tap" onClick={() => onEdit(expense)} style={{ flex: 1, background: "#212121", border: "1px solid #2a2a2a", color: "#e8e8e6", borderRadius: 14, padding: 16, fontSize: 15, fontWeight: 500 }}>Edit</button>
+        <button className="tap" onClick={handleDelete} disabled={deleting} style={{ flex: 1, background: "#2a1010", border: "1px solid #3a1515", color: "#e05c5c", borderRadius: 14, padding: 16, fontSize: 15, fontWeight: 500, opacity: deleting ? 0.5 : 1 }}>
+          {deleting ? "Deleting..." : "Delete"}
+        </button>
+      </div>
+    </div>
+  );
+}
+
+// ─── Expense Form ──────────────────────────────────────────────
+function ExpenseForm({ expense, onSave, onBack }) {
+  const [form, setForm] = useState({
+    description: expense?.description || "",
+    date: expense?.date
+      ? (typeof expense.date === "string" && expense.date.length === 10 ? expense.date : new Date(expense.date).toISOString().slice(0, 10))
+      : new Date().toISOString().slice(0, 10),
+    category: expense?.category || "Essentials",
+    amount: expense?.amount || "",
+    notes: expense?.notes || "",
+    _id: expense?._id || null,
+  });
+  const [saving, setSaving] = useState(false);
+
+  function set(k, v) { setForm(f => ({ ...f, [k]: v })); }
+
+  async function handleSave() {
+    if (!form.description || !form.amount || !form.date) return alert("Fill in Description, Date & Amount.");
+    setSaving(true);
+    await onSave({ ...form, amount: +form.amount });
+    setSaving(false);
+  }
+
+  const inp = { width: "100%", background: "#212121", border: "1px solid #2a2a2a", color: "#e8e8e6", padding: "13px 14px", borderRadius: 12, fontSize: 15 };
+  const lbl = { display: "block", fontSize: 12, color: "#666", marginBottom: 7, fontWeight: 500 };
+
+  return (
+    <div style={{ padding: "20px 16px" }}>
+      <button className="tap" onClick={onBack} style={{ background: "none", border: "none", color: "#c98a3a", fontSize: 14, padding: 0, marginBottom: 24 }}>← Back</button>
+      <h1 style={{ fontSize: 22, fontWeight: 700, marginBottom: 24 }}>{form._id ? "Edit Expense" : "New Expense"}</h1>
+      <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+        <div>
+          <label style={lbl}>Description</label>
+          <input style={inp} value={form.description} onChange={e => set("description", e.target.value)} placeholder="e.g. Uber to venue" />
+        </div>
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+          <div>
+            <label style={lbl}>Date</label>
+            <input style={inp} type="date" value={form.date} onChange={e => set("date", e.target.value)} />
+          </div>
+          <div>
+            <label style={lbl}>Category</label>
+            <select style={inp} value={form.category} onChange={e => set("category", e.target.value)}>
+              {EXPENSE_CATEGORIES.map(c => <option key={c}>{c}</option>)}
+            </select>
+          </div>
+        </div>
+
+        {/* Category quick-pick */}
+        <div>
+          <label style={lbl}>Quick Category</label>
+          <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+            {EXPENSE_CATEGORIES.map(c => {
+              const cc = EXPENSE_CATEGORY_COLORS[c];
+              const active = form.category === c;
+              return (
+                <button key={c} className="tap" onClick={() => set("category", c)}
+                  style={{ padding: "6px 12px", borderRadius: 20, border: active ? `1px solid ${cc.border}` : "1px solid #2a2a2a", fontSize: 12, fontWeight: active ? 700 : 400, background: active ? cc.bg : "#1a1a1a", color: active ? cc.text : "#555", display: "flex", alignItems: "center", gap: 4 }}>
+                  {cc.icon} {c}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+
+        <div>
+          <label style={lbl}>Amount (₹)</label>
+          <input style={{ ...inp, background: "#1a1a1a" }} type="number" value={form.amount} onChange={e => set("amount", e.target.value)} placeholder="500" />
+        </div>
+        <div>
+          <label style={lbl}>Notes</label>
+          <input style={inp} value={form.notes} onChange={e => set("notes", e.target.value)} placeholder="Optional notes..." />
+        </div>
+        <button className="tap" onClick={handleSave} disabled={saving}
+          style={{ background: "#c98a3a", border: "none", color: "#fff", borderRadius: 16, padding: 17, fontSize: 16, fontWeight: 600, marginTop: 4, marginBottom: 16, opacity: saving ? 0.7 : 1 }}>
+          {saving ? "Saving..." : form._id ? "Save Changes" : "Add Expense"}
+        </button>
+      </div>
+    </div>
+  );
+}
+
+// ─── Gig Card ──────────────────────────────────────────────────
 function GigCard({ gig, onTap }) {
   const status = payStatus(gig);
   const badge = status === "paid" ? { label: "Paid", color: "#5bb974", bg: "#1a2e1e" }
@@ -604,6 +952,7 @@ function GigCard({ gig, onTap }) {
         <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 3 }}>
           <p style={{ fontSize: 14, fontWeight: 600, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", color: "white" }}>{gig.client}</p>
           <span style={{ width: 7, height: 7, borderRadius: 4, background: gig.confirmed ? "#5bb974" : "#a78bfa", flexShrink: 0 }} />
+          {gig.slot && <SlotBadge slot={gig.slot} size="xs" />}
         </div>
         <p style={{ fontSize: 12, color: "#555" }}>{new Date(gig.date).toLocaleDateString("en-IN", { day: "numeric", month: "short" })} · {gig.type}</p>
       </div>
@@ -615,7 +964,7 @@ function GigCard({ gig, onTap }) {
   );
 }
 
-// ─── Gig Detail ───────────────────────────────────────────────
+// ─── Gig Detail ────────────────────────────────────────────────
 function GigDetail({ gig, onBack, onEdit, onDelete, onToggleConfirm }) {
   const [deleting, setDeleting] = useState(false);
   const status = payStatus(gig);
@@ -635,8 +984,11 @@ function GigDetail({ gig, onBack, onEdit, onDelete, onToggleConfirm }) {
     <div style={{ padding: "20px 16px" }}>
       <button className="tap" onClick={onBack} style={{ background: "none", border: "none", color: "#c98a3a", fontSize: 14, padding: 0, marginBottom: 24 }}>← Back</button>
       <div style={{ marginBottom: 20 }}>
-        <h1 style={{ fontSize: 20, fontWeight: 700, color: "white" }}>{gig.client}</h1>
-        <p style={{ fontSize: 12, color: "#666", marginTop: 4 }}>{gig.type} · {new Date(gig.date).toLocaleDateString("en-IN", { day: "numeric", month: "long", year: "numeric" })}</p>
+        <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 4 }}>
+          <h1 style={{ fontSize: 20, fontWeight: 700, color: "white" }}>{gig.client}</h1>
+          {gig.slot && <SlotBadge slot={gig.slot} />}
+        </div>
+        <p style={{ fontSize: 12, color: "#666" }}>{gig.type} · {new Date(gig.date).toLocaleDateString("en-IN", { day: "numeric", month: "long", year: "numeric" })}</p>
       </div>
       <div style={{ display: "flex", gap: 10, marginBottom: 16 }}>
         <div style={{ flex: 1, background: gig.confirmed ? "#0f2218" : "#1e1828", border: `1px solid ${gig.confirmed ? "#1e4d30" : "#3b2f6b"}`, borderRadius: 14, padding: "12px 14px" }}>
@@ -659,7 +1011,11 @@ function GigDetail({ gig, onBack, onEdit, onDelete, onToggleConfirm }) {
         {gig.confirmed ? "✕  Mark as Unconfirmed" : "✓  Mark as Confirmed"}
       </button>
       <div style={{ background: "#212121", borderRadius: 18, overflow: "hidden", marginBottom: 16, border: "1px solid #2a2a2a" }}>
-        {[{ label: "Total Fee", value: fmt(gig.fee), color: "#e8e8e6" }, { label: "Received", value: fmt(gig.paid), color: "#5bb974" }, { label: "Balance Due", value: fmt(Math.max(0, pending)), color: pending > 0 ? "#e07b3a" : "#5bb974" }].map((row, i, arr) => (
+        {[
+          { label: "Total Fee", value: fmt(gig.fee), color: "#e8e8e6" },
+          { label: "Received", value: fmt(gig.paid), color: "#5bb974" },
+          { label: "Balance Due", value: fmt(Math.max(0, pending)), color: pending > 0 ? "#e07b3a" : "#5bb974" },
+        ].map((row, i, arr) => (
           <div key={i} style={{ padding: "16px 18px", borderBottom: i < arr.length - 1 ? "1px solid #2a2a2a" : "none", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
             <span style={{ fontSize: 14, color: "#888" }}>{row.label}</span>
             <span style={{ fontSize: 16, fontWeight: 700, color: row.color }}>{row.value}</span>
@@ -690,7 +1046,7 @@ function GigDetail({ gig, onBack, onEdit, onDelete, onToggleConfirm }) {
   );
 }
 
-// ─── Gig Form ─────────────────────────────────────────────────
+// ─── Gig Form ──────────────────────────────────────────────────
 function GigForm({ gig, onSave, onBack }) {
   const [form, setForm] = useState({
     client: gig?.client || "",
@@ -698,6 +1054,7 @@ function GigForm({ gig, onSave, onBack }) {
       ? (typeof gig.date === "string" && gig.date.length === 10 ? gig.date : new Date(gig.date).toISOString().slice(0, 10))
       : new Date().toISOString().slice(0, 10),
     type: gig?.type || "Wedding",
+    slot: gig?.slot || "",
     fee: gig?.fee || "",
     paid: gig?.paid || 0,
     notes: gig?.notes || "",
@@ -740,10 +1097,32 @@ function GigForm({ gig, onSave, onBack }) {
             </select>
           </div>
         </div>
+
+        {/* Slot picker */}
+        <div>
+          <label style={lbl}>Time Slot</label>
+          <div style={{ display: "flex", gap: 10 }}>
+            {[
+              { val: "Morning", icon: "🌅", color: "#f5c842", activeBg: "rgba(245,200,66,0.08)", activeBorder: "rgba(245,200,66,0.3)" },
+              { val: "Evening", icon: "🌙", color: "#b06bff", activeBg: "rgba(176,107,255,0.08)", activeBorder: "rgba(176,107,255,0.3)" },
+              { val: "", icon: "—", color: "#555", activeBg: "#212121", activeBorder: "#444" },
+            ].map(opt => (
+              <button key={opt.val} className="tap" onClick={() => set("slot", opt.val)}
+                style={{ flex: 1, padding: "10px 8px", borderRadius: 12, fontSize: 12, fontWeight: 600, background: form.slot === opt.val ? opt.activeBg : "#181818", border: `1px solid ${form.slot === opt.val ? opt.activeBorder : "#2a2a2a"}`, color: form.slot === opt.val ? opt.color : "#444", display: "flex", alignItems: "center", justifyContent: "center", gap: 5 }}>
+                <span style={{ fontSize: 16 }}>{opt.icon}</span>
+                {opt.val || "None"}
+              </button>
+            ))}
+          </div>
+        </div>
+
         <div>
           <label style={lbl}>Gig Confirmation</label>
           <div style={{ display: "flex", gap: 10 }}>
-            {[{ val: true, label: "✓  Confirmed", color: "#5bb974", activeBg: "#0f2218", activeBorder: "#1e4d30" }, { val: false, label: "?  Unconfirmed", color: "#a78bfa", activeBg: "#1e1828", activeBorder: "#3b2f6b" }].map(opt => (
+            {[
+              { val: true, label: "✓  Confirmed", color: "#5bb974", activeBg: "#0f2218", activeBorder: "#1e4d30" },
+              { val: false, label: "?  Unconfirmed", color: "#a78bfa", activeBg: "#1e1828", activeBorder: "#3b2f6b" },
+            ].map(opt => (
               <button key={String(opt.val)} className="tap" onClick={() => set("confirmed", opt.val)}
                 style={{ flex: 1, padding: 12, borderRadius: 12, fontSize: 13, fontWeight: 600, background: form.confirmed === opt.val ? opt.activeBg : "#212121", border: `1px solid ${form.confirmed === opt.val ? opt.activeBorder : "#2a2a2a"}`, color: form.confirmed === opt.val ? opt.color : "#555" }}>
                 {opt.label}
@@ -751,10 +1130,12 @@ function GigForm({ gig, onSave, onBack }) {
             ))}
           </div>
         </div>
+
         <div>
           <label style={lbl}>Notes</label>
           <input style={inp} value={form.notes} onChange={e => set("notes", e.target.value)} placeholder="Any notes..." />
         </div>
+
         <div style={{ background: "#212121", borderRadius: 18, padding: 16, border: "1px solid #2a2a2a" }}>
           <p style={{ fontSize: 12, fontWeight: 600, color: "#666", marginBottom: 14, textTransform: "uppercase", letterSpacing: "0.06em" }}>Payment</p>
           <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
@@ -779,6 +1160,7 @@ function GigForm({ gig, onSave, onBack }) {
             </div>
           )}
         </div>
+
         <button className="tap" onClick={handleSave} disabled={saving}
           style={{ background: "#c98a3a", border: "none", color: "#fff", borderRadius: 16, padding: 17, fontSize: 16, fontWeight: 600, marginTop: 4, marginBottom: 16, opacity: saving ? 0.7 : 1 }}>
           {saving ? "Saving..." : form._id ? "Save Changes" : "Add Gig"}
@@ -788,7 +1170,7 @@ function GigForm({ gig, onSave, onBack }) {
   );
 }
 
-// ─── SVG Nav Icons ────────────────────────────────────────────
+// ─── Nav Icons ─────────────────────────────────────────────────
 function HomeIcon({ active }) {
   return <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke={active ? "#c98a3a" : "#555"} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 9.5L12 3l9 6.5V20a1 1 0 01-1 1H5a1 1 0 01-1-1V9.5z" /><path d="M9 21V12h6v9" /></svg>;
 }
@@ -800,4 +1182,7 @@ function CalIcon({ active }) {
 }
 function ChartIcon({ active }) {
   return <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke={active ? "#c98a3a" : "#555"} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="20" x2="18" y2="10" /><line x1="12" y1="20" x2="12" y2="4" /><line x1="6" y1="20" x2="6" y2="14" /></svg>;
+}
+function WalletIcon({ active }) {
+  return <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke={active ? "#c98a3a" : "#555"} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="5" width="20" height="14" rx="2" /><path d="M16 12h2" /><path d="M2 10h20" /></svg>;
 }
