@@ -824,36 +824,39 @@ function ExpenseDetail({ expense, onBack, onEdit, onDelete }) {
   }
 
   return (
-    <div style={{ padding: "20px 16px" }}>
-      <button className="tap" onClick={onBack} style={{ background: "none", border: "none", color: "#c98a3a", fontSize: 14, padding: 0, marginBottom: 24 }}>← Back</button>
-      <div style={{ display: "flex", alignItems: "center", gap: 14, marginBottom: 20 }}>
-        <div style={{ width: 52, height: 52, borderRadius: 16, background: cc.bg, border: `1px solid ${cc.border}`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 26 }}>
-          {cc.icon}
+    <>
+      <AppHeader title="Payment Tracker" subtitle="Welcome back Anix 👋" />
+      <div style={{ padding: "18px 16px 0" }}>
+        <button className="tap" onClick={onBack} style={{ background: "none", border: "none", color: "#c98a3a", fontSize: 14, padding: 0, marginBottom: 24 }}>← Back</button>
+        <div style={{ display: "flex", alignItems: "center", gap: 14, marginBottom: 20 }}>
+          <div style={{ width: 52, height: 52, borderRadius: 16, background: cc.bg, border: `1px solid ${cc.border}`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 26 }}>
+            {cc.icon}
+          </div>
+          <div>
+            <h1 style={{ fontSize: 20, fontWeight: 700, color: "white" }}>{expense.description}</h1>
+            <p style={{ fontSize: 12, color: "#666", marginTop: 4 }}>{expense.category} · {new Date(expense.date).toLocaleDateString("en-IN", { day: "numeric", month: "long", year: "numeric" })}</p>
+          </div>
         </div>
-        <div>
-          <h1 style={{ fontSize: 20, fontWeight: 700, color: "white" }}>{expense.description}</h1>
-          <p style={{ fontSize: 12, color: "#666", marginTop: 4 }}>{expense.category} · {new Date(expense.date).toLocaleDateString("en-IN", { day: "numeric", month: "long", year: "numeric" })}</p>
+        <div style={{ background: "#212121", borderRadius: 18, overflow: "hidden", marginBottom: 20, border: "1px solid #2a2a2a" }}>
+          <div style={{ padding: "20px 18px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+            <span style={{ fontSize: 14, color: "#888" }}>Amount</span>
+            <span style={{ fontSize: 24, fontWeight: 700, color: "#e05c7a" }}>{fmt(expense.amount)}</span>
+          </div>
+        </div>
+        {expense.notes && (
+          <div style={{ background: "#212121", borderRadius: 14, padding: "14px 16px", marginBottom: 20, border: "1px solid #2a2a2a" }}>
+            <p style={{ fontSize: 11, color: "#555", marginBottom: 6, textTransform: "uppercase", letterSpacing: "0.05em" }}>Notes</p>
+            <p style={{ fontSize: 14, color: "#aaa" }}>{expense.notes}</p>
+          </div>
+        )}
+        <div style={{ display: "flex", gap: 10 }}>
+          <button className="tap" onClick={() => onEdit(expense)} style={{ flex: 1, background: "#212121", border: "1px solid #2a2a2a", color: "#e8e8e6", borderRadius: 14, padding: 16, fontSize: 15, fontWeight: 500 }}>Edit</button>
+          <button className="tap" onClick={handleDelete} disabled={deleting} style={{ flex: 1, background: "#2a1010", border: "1px solid #3a1515", color: "#e05c5c", borderRadius: 14, padding: 16, fontSize: 15, fontWeight: 500, opacity: deleting ? 0.5 : 1 }}>
+            {deleting ? "Deleting..." : "Delete"}
+          </button>
         </div>
       </div>
-      <div style={{ background: "#212121", borderRadius: 18, overflow: "hidden", marginBottom: 20, border: "1px solid #2a2a2a" }}>
-        <div style={{ padding: "20px 18px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-          <span style={{ fontSize: 14, color: "#888" }}>Amount</span>
-          <span style={{ fontSize: 24, fontWeight: 700, color: "#e05c7a" }}>{fmt(expense.amount)}</span>
-        </div>
-      </div>
-      {expense.notes && (
-        <div style={{ background: "#212121", borderRadius: 14, padding: "14px 16px", marginBottom: 20, border: "1px solid #2a2a2a" }}>
-          <p style={{ fontSize: 11, color: "#555", marginBottom: 6, textTransform: "uppercase", letterSpacing: "0.05em" }}>Notes</p>
-          <p style={{ fontSize: 14, color: "#aaa" }}>{expense.notes}</p>
-        </div>
-      )}
-      <div style={{ display: "flex", gap: 10 }}>
-        <button className="tap" onClick={() => onEdit(expense)} style={{ flex: 1, background: "#212121", border: "1px solid #2a2a2a", color: "#e8e8e6", borderRadius: 14, padding: 16, fontSize: 15, fontWeight: 500 }}>Edit</button>
-        <button className="tap" onClick={handleDelete} disabled={deleting} style={{ flex: 1, background: "#2a1010", border: "1px solid #3a1515", color: "#e05c5c", borderRadius: 14, padding: 16, fontSize: 15, fontWeight: 500, opacity: deleting ? 0.5 : 1 }}>
-          {deleting ? "Deleting..." : "Delete"}
-        </button>
-      </div>
-    </div>
+    </>
   );
 }
 
@@ -884,58 +887,61 @@ function ExpenseForm({ expense, onSave, onBack }) {
   const lbl = { display: "block", fontSize: 12, color: "#666", marginBottom: 7, fontWeight: 500 };
 
   return (
-    <div style={{ padding: "20px 16px" }}>
-      <button className="tap" onClick={onBack} style={{ background: "none", border: "none", color: "#c98a3a", fontSize: 14, padding: 0, marginBottom: 24 }}>← Back</button>
-      <h1 style={{ fontSize: 22, fontWeight: 700, marginBottom: 24 }}>{form._id ? "Edit Expense" : "New Expense"}</h1>
-      <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-        <div>
-          <label style={lbl}>Description</label>
-          <input style={inp} value={form.description} onChange={e => set("description", e.target.value)} placeholder="e.g. Uber to venue" />
-        </div>
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+    <>
+      <AppHeader title="Payment Tracker" subtitle="Welcome back Anix 👋" />
+      <div style={{ padding: "18px 16px 0" }}>
+        <button className="tap" onClick={onBack} style={{ background: "none", border: "none", color: "#c98a3a", fontSize: 14, padding: 0, marginBottom: 24 }}>← Back</button>
+        <h1 style={{ fontSize: 22, fontWeight: 700, marginBottom: 24 }}>{form._id ? "Edit Expense" : "New Expense"}</h1>
+        <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
           <div>
-            <label style={lbl}>Date</label>
-            <input style={inp} type="date" value={form.date} onChange={e => set("date", e.target.value)} />
+            <label style={lbl}>Description</label>
+            <input style={inp} value={form.description} onChange={e => set("description", e.target.value)} placeholder="e.g. Uber to venue" />
+          </div>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+            <div>
+              <label style={lbl}>Date</label>
+              <input style={inp} type="date" value={form.date} onChange={e => set("date", e.target.value)} />
+            </div>
+            <div>
+              <label style={lbl}>Category</label>
+              <select style={inp} value={form.category} onChange={e => set("category", e.target.value)}>
+                {EXPENSE_CATEGORIES.map(c => <option key={c}>{c}</option>)}
+              </select>
+            </div>
+          </div>
+
+          {/* Category quick-pick */}
+          <div>
+            <label style={lbl}>Quick Category</label>
+            <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+              {EXPENSE_CATEGORIES.map(c => {
+                const cc = EXPENSE_CATEGORY_COLORS[c];
+                const active = form.category === c;
+                return (
+                  <button key={c} className="tap" onClick={() => set("category", c)}
+                    style={{ padding: "6px 12px", borderRadius: 20, border: active ? `1px solid ${cc.border}` : "1px solid #2a2a2a", fontSize: 12, fontWeight: active ? 700 : 400, background: active ? cc.bg : "#1a1a1a", color: active ? cc.text : "#555", display: "flex", alignItems: "center", gap: 4 }}>
+                    {cc.icon} {c}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          <div>
+            <label style={lbl}>Amount (₹)</label>
+            <input style={{ ...inp, background: "#1a1a1a" }} type="number" value={form.amount} onChange={e => set("amount", e.target.value)} placeholder="500" />
           </div>
           <div>
-            <label style={lbl}>Category</label>
-            <select style={inp} value={form.category} onChange={e => set("category", e.target.value)}>
-              {EXPENSE_CATEGORIES.map(c => <option key={c}>{c}</option>)}
-            </select>
+            <label style={lbl}>Notes</label>
+            <input style={inp} value={form.notes} onChange={e => set("notes", e.target.value)} placeholder="Optional notes..." />
           </div>
+          <button className="tap" onClick={handleSave} disabled={saving}
+            style={{ background: "#c98a3a", border: "none", color: "#fff", borderRadius: 16, padding: 17, fontSize: 16, fontWeight: 600, marginTop: 4, marginBottom: 16, opacity: saving ? 0.7 : 1 }}>
+            {saving ? "Saving..." : form._id ? "Save Changes" : "Add Expense"}
+          </button>
         </div>
-
-        {/* Category quick-pick */}
-        <div>
-          <label style={lbl}>Quick Category</label>
-          <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
-            {EXPENSE_CATEGORIES.map(c => {
-              const cc = EXPENSE_CATEGORY_COLORS[c];
-              const active = form.category === c;
-              return (
-                <button key={c} className="tap" onClick={() => set("category", c)}
-                  style={{ padding: "6px 12px", borderRadius: 20, border: active ? `1px solid ${cc.border}` : "1px solid #2a2a2a", fontSize: 12, fontWeight: active ? 700 : 400, background: active ? cc.bg : "#1a1a1a", color: active ? cc.text : "#555", display: "flex", alignItems: "center", gap: 4 }}>
-                  {cc.icon} {c}
-                </button>
-              );
-            })}
-          </div>
-        </div>
-
-        <div>
-          <label style={lbl}>Amount (₹)</label>
-          <input style={{ ...inp, background: "#1a1a1a" }} type="number" value={form.amount} onChange={e => set("amount", e.target.value)} placeholder="500" />
-        </div>
-        <div>
-          <label style={lbl}>Notes</label>
-          <input style={inp} value={form.notes} onChange={e => set("notes", e.target.value)} placeholder="Optional notes..." />
-        </div>
-        <button className="tap" onClick={handleSave} disabled={saving}
-          style={{ background: "#c98a3a", border: "none", color: "#fff", borderRadius: 16, padding: 17, fontSize: 16, fontWeight: 600, marginTop: 4, marginBottom: 16, opacity: saving ? 0.7 : 1 }}>
-          {saving ? "Saving..." : form._id ? "Save Changes" : "Add Expense"}
-        </button>
       </div>
-    </div>
+    </>
   );
 }
 
@@ -981,68 +987,71 @@ function GigDetail({ gig, onBack, onEdit, onDelete, onToggleConfirm }) {
   }
 
   return (
-    <div style={{ padding: "20px 16px" }}>
-      <button className="tap" onClick={onBack} style={{ background: "none", border: "none", color: "#c98a3a", fontSize: 14, padding: 0, marginBottom: 24 }}>← Back</button>
-      <div style={{ marginBottom: 20 }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 4 }}>
-          <h1 style={{ fontSize: 20, fontWeight: 700, color: "white" }}>{gig.client}</h1>
-          {gig.slot && <SlotBadge slot={gig.slot} />}
+    <>
+      <AppHeader title="Payment Tracker" subtitle="Welcome back Anix 👋" />
+      <div style={{ padding: "18px 16px 0" }}>
+        <button className="tap" onClick={onBack} style={{ background: "none", border: "none", color: "#c98a3a", fontSize: 14, padding: 0, marginBottom: 24 }}>← Back</button>
+        <div style={{ marginBottom: 20 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 4 }}>
+            <h1 style={{ fontSize: 20, fontWeight: 700, color: "white" }}>{gig.client}</h1>
+            {gig.slot && <SlotBadge slot={gig.slot} />}
+          </div>
+          <p style={{ fontSize: 12, color: "#666" }}>{gig.type} · {new Date(gig.date).toLocaleDateString("en-IN", { day: "numeric", month: "long", year: "numeric" })}</p>
         </div>
-        <p style={{ fontSize: 12, color: "#666" }}>{gig.type} · {new Date(gig.date).toLocaleDateString("en-IN", { day: "numeric", month: "long", year: "numeric" })}</p>
-      </div>
-      <div style={{ display: "flex", gap: 10, marginBottom: 16 }}>
-        <div style={{ flex: 1, background: gig.confirmed ? "#0f2218" : "#1e1828", border: `1px solid ${gig.confirmed ? "#1e4d30" : "#3b2f6b"}`, borderRadius: 14, padding: "12px 14px" }}>
-          <p style={{ fontSize: 10, color: "#666", marginBottom: 6, textTransform: "uppercase", letterSpacing: "0.06em" }}>Gig Status</p>
-          <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-            <div style={{ width: 7, height: 7, borderRadius: 4, background: gig.confirmed ? "#5bb974" : "#a78bfa" }} />
-            <span style={{ fontSize: 13, fontWeight: 600, color: gig.confirmed ? "#5bb974" : "#a78bfa" }}>{gig.confirmed ? "Confirmed" : "Unconfirmed"}</span>
+        <div style={{ display: "flex", gap: 10, marginBottom: 16 }}>
+          <div style={{ flex: 1, background: gig.confirmed ? "#0f2218" : "#1e1828", border: `1px solid ${gig.confirmed ? "#1e4d30" : "#3b2f6b"}`, borderRadius: 14, padding: "12px 14px" }}>
+            <p style={{ fontSize: 10, color: "#666", marginBottom: 6, textTransform: "uppercase", letterSpacing: "0.06em" }}>Gig Status</p>
+            <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+              <div style={{ width: 7, height: 7, borderRadius: 4, background: gig.confirmed ? "#5bb974" : "#a78bfa" }} />
+              <span style={{ fontSize: 13, fontWeight: 600, color: gig.confirmed ? "#5bb974" : "#a78bfa" }}>{gig.confirmed ? "Confirmed" : "Unconfirmed"}</span>
+            </div>
+          </div>
+          <div style={{ flex: 1, background: payBadge.bg, border: "1px solid #2a2a2a", borderRadius: 14, padding: "12px 14px" }}>
+            <p style={{ fontSize: 10, color: "#666", marginBottom: 6, textTransform: "uppercase", letterSpacing: "0.06em" }}>Payment</p>
+            <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+              <div style={{ width: 7, height: 7, borderRadius: 4, background: payBadge.color }} />
+              <span style={{ fontSize: 13, fontWeight: 600, color: payBadge.color }}>{payBadge.label}</span>
+            </div>
           </div>
         </div>
-        <div style={{ flex: 1, background: payBadge.bg, border: "1px solid #2a2a2a", borderRadius: 14, padding: "12px 14px" }}>
-          <p style={{ fontSize: 10, color: "#666", marginBottom: 6, textTransform: "uppercase", letterSpacing: "0.06em" }}>Payment</p>
-          <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-            <div style={{ width: 7, height: 7, borderRadius: 4, background: payBadge.color }} />
-            <span style={{ fontSize: 13, fontWeight: 600, color: payBadge.color }}>{payBadge.label}</span>
-          </div>
-        </div>
-      </div>
-      <button className="tap" onClick={() => onToggleConfirm(gig._id)}
-        style={{ width: "100%", borderRadius: 14, padding: 14, fontSize: 14, fontWeight: 600, marginBottom: 16, border: "none", background: gig.confirmed ? "#1e1828" : "#0f2218", color: gig.confirmed ? "#a78bfa" : "#5bb974" }}>
-        {gig.confirmed ? "✕  Mark as Unconfirmed" : "✓  Mark as Confirmed"}
-      </button>
-      <div style={{ background: "#212121", borderRadius: 18, overflow: "hidden", marginBottom: 16, border: "1px solid #2a2a2a" }}>
-        {[
-          { label: "Total Fee", value: fmt(gig.fee), color: "#e8e8e6" },
-          { label: "Received", value: fmt(gig.paid), color: "#5bb974" },
-          { label: "Balance Due", value: fmt(Math.max(0, pending)), color: pending > 0 ? "#e07b3a" : "#5bb974" },
-        ].map((row, i, arr) => (
-          <div key={i} style={{ padding: "16px 18px", borderBottom: i < arr.length - 1 ? "1px solid #2a2a2a" : "none", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-            <span style={{ fontSize: 14, color: "#888" }}>{row.label}</span>
-            <span style={{ fontSize: 16, fontWeight: 700, color: row.color }}>{row.value}</span>
-          </div>
-        ))}
-      </div>
-      <div style={{ marginBottom: 20 }}>
-        <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12, color: "#555", marginBottom: 8 }}>
-          <span>Payment progress</span><span>{Math.round((gig.paid / gig.fee) * 100)}%</span>
-        </div>
-        <div style={{ height: 6, background: "#2a2a2a", borderRadius: 3 }}>
-          <div style={{ height: 6, width: `${Math.min(100, (gig.paid / gig.fee) * 100)}%`, background: "#5bb974", borderRadius: 3 }} />
-        </div>
-      </div>
-      {gig.notes && (
-        <div style={{ background: "#212121", borderRadius: 14, padding: "14px 16px", marginBottom: 20, border: "1px solid #2a2a2a" }}>
-          <p style={{ fontSize: 11, color: "#555", marginBottom: 6, textTransform: "uppercase", letterSpacing: "0.05em" }}>Notes</p>
-          <p style={{ fontSize: 14, color: "#aaa" }}>{gig.notes}</p>
-        </div>
-      )}
-      <div style={{ display: "flex", gap: 10 }}>
-        <button className="tap" onClick={() => onEdit(gig)} style={{ flex: 1, background: "#212121", border: "1px solid #2a2a2a", color: "#e8e8e6", borderRadius: 14, padding: 16, fontSize: 15, fontWeight: 500 }}>Edit Gig</button>
-        <button className="tap" onClick={handleDelete} disabled={deleting} style={{ flex: 1, background: "#2a1010", border: "1px solid #3a1515", color: "#e05c5c", borderRadius: 14, padding: 16, fontSize: 15, fontWeight: 500, opacity: deleting ? 0.5 : 1 }}>
-          {deleting ? "Deleting..." : "Delete"}
+        <button className="tap" onClick={() => onToggleConfirm(gig._id)}
+          style={{ width: "100%", borderRadius: 14, padding: 14, fontSize: 14, fontWeight: 600, marginBottom: 16, border: "none", background: gig.confirmed ? "#1e1828" : "#0f2218", color: gig.confirmed ? "#a78bfa" : "#5bb974" }}>
+          {gig.confirmed ? "✕  Mark as Unconfirmed" : "✓  Mark as Confirmed"}
         </button>
+        <div style={{ background: "#212121", borderRadius: 18, overflow: "hidden", marginBottom: 16, border: "1px solid #2a2a2a" }}>
+          {[
+            { label: "Total Fee", value: fmt(gig.fee), color: "#e8e8e6" },
+            { label: "Received", value: fmt(gig.paid), color: "#5bb974" },
+            { label: "Balance Due", value: fmt(Math.max(0, pending)), color: pending > 0 ? "#e07b3a" : "#5bb974" },
+          ].map((row, i, arr) => (
+            <div key={i} style={{ padding: "16px 18px", borderBottom: i < arr.length - 1 ? "1px solid #2a2a2a" : "none", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+              <span style={{ fontSize: 14, color: "#888" }}>{row.label}</span>
+              <span style={{ fontSize: 16, fontWeight: 700, color: row.color }}>{row.value}</span>
+            </div>
+          ))}
+        </div>
+        <div style={{ marginBottom: 20 }}>
+          <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12, color: "#555", marginBottom: 8 }}>
+            <span>Payment progress</span><span>{Math.round((gig.paid / gig.fee) * 100)}%</span>
+          </div>
+          <div style={{ height: 6, background: "#2a2a2a", borderRadius: 3 }}>
+            <div style={{ height: 6, width: `${Math.min(100, (gig.paid / gig.fee) * 100)}%`, background: "#5bb974", borderRadius: 3 }} />
+          </div>
+        </div>
+        {gig.notes && (
+          <div style={{ background: "#212121", borderRadius: 14, padding: "14px 16px", marginBottom: 20, border: "1px solid #2a2a2a" }}>
+            <p style={{ fontSize: 11, color: "#555", marginBottom: 6, textTransform: "uppercase", letterSpacing: "0.05em" }}>Notes</p>
+            <p style={{ fontSize: 14, color: "#aaa" }}>{gig.notes}</p>
+          </div>
+        )}
+        <div style={{ display: "flex", gap: 10 }}>
+          <button className="tap" onClick={() => onEdit(gig)} style={{ flex: 1, background: "#212121", border: "1px solid #2a2a2a", color: "#e8e8e6", borderRadius: 14, padding: 16, fontSize: 15, fontWeight: 500 }}>Edit Gig</button>
+          <button className="tap" onClick={handleDelete} disabled={deleting} style={{ flex: 1, background: "#2a1010", border: "1px solid #3a1515", color: "#e05c5c", borderRadius: 14, padding: 16, fontSize: 15, fontWeight: 500, opacity: deleting ? 0.5 : 1 }}>
+            {deleting ? "Deleting..." : "Delete"}
+          </button>
+        </div>
       </div>
-    </div>
+    </>
   );
 }
 
@@ -1077,96 +1086,99 @@ function GigForm({ gig, onSave, onBack }) {
   const lbl = { display: "block", fontSize: 12, color: "#666", marginBottom: 7, fontWeight: 500 };
 
   return (
-    <div style={{ padding: "20px 16px" }}>
-      <button className="tap" onClick={onBack} style={{ background: "none", border: "none", color: "#c98a3a", fontSize: 14, padding: 0, marginBottom: 24 }}>← Back</button>
-      <h1 style={{ fontSize: 22, fontWeight: 700, marginBottom: 24 }}>{form._id ? "Edit Gig" : "New Gig"}</h1>
-      <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-        <div>
-          <label style={lbl}>Client / Event</label>
-          <input style={inp} value={form.client} onChange={e => set("client", e.target.value)} placeholder="e.g. Ritz Wedding Hall" />
-        </div>
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+    <>
+      <AppHeader title="Payment Tracker" subtitle="Welcome back Anix 👋" />
+      <div style={{ padding: "18px 16px 0" }}>
+        <button className="tap" onClick={onBack} style={{ background: "none", border: "none", color: "#c98a3a", fontSize: 14, padding: 0, marginBottom: 24 }}>← Back</button>
+        <h1 style={{ fontSize: 22, fontWeight: 700, marginBottom: 24 }}>{form._id ? "Edit Gig" : "New Gig"}</h1>
+        <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
           <div>
-            <label style={lbl}>Date</label>
-            <input style={inp} type="date" value={form.date} onChange={e => set("date", e.target.value)} />
+            <label style={lbl}>Client / Event</label>
+            <input style={inp} value={form.client} onChange={e => set("client", e.target.value)} placeholder="e.g. Ritz Wedding Hall" />
           </div>
-          <div>
-            <label style={lbl}>Type</label>
-            <select style={inp} value={form.type} onChange={e => set("type", e.target.value)}>
-              {GIG_TYPES.map(t => <option key={t}>{t}</option>)}
-            </select>
-          </div>
-        </div>
-
-        {/* Slot picker */}
-        <div>
-          <label style={lbl}>Time Slot</label>
-          <div style={{ display: "flex", gap: 10 }}>
-            {[
-              { val: "Morning", icon: "🌅", color: "#f5c842", activeBg: "rgba(245,200,66,0.08)", activeBorder: "rgba(245,200,66,0.3)" },
-              { val: "Evening", icon: "🌙", color: "#b06bff", activeBg: "rgba(176,107,255,0.08)", activeBorder: "rgba(176,107,255,0.3)" },
-              { val: "", icon: "—", color: "#555", activeBg: "#212121", activeBorder: "#444" },
-            ].map(opt => (
-              <button key={opt.val} className="tap" onClick={() => set("slot", opt.val)}
-                style={{ flex: 1, padding: "10px 8px", borderRadius: 12, fontSize: 12, fontWeight: 600, background: form.slot === opt.val ? opt.activeBg : "#181818", border: `1px solid ${form.slot === opt.val ? opt.activeBorder : "#2a2a2a"}`, color: form.slot === opt.val ? opt.color : "#444", display: "flex", alignItems: "center", justifyContent: "center", gap: 5 }}>
-                <span style={{ fontSize: 16 }}>{opt.icon}</span>
-                {opt.val || "None"}
-              </button>
-            ))}
-          </div>
-        </div>
-
-        <div>
-          <label style={lbl}>Gig Confirmation</label>
-          <div style={{ display: "flex", gap: 10 }}>
-            {[
-              { val: true, label: "✓  Confirmed", color: "#5bb974", activeBg: "#0f2218", activeBorder: "#1e4d30" },
-              { val: false, label: "?  Unconfirmed", color: "#a78bfa", activeBg: "#1e1828", activeBorder: "#3b2f6b" },
-            ].map(opt => (
-              <button key={String(opt.val)} className="tap" onClick={() => set("confirmed", opt.val)}
-                style={{ flex: 1, padding: 12, borderRadius: 12, fontSize: 13, fontWeight: 600, background: form.confirmed === opt.val ? opt.activeBg : "#212121", border: `1px solid ${form.confirmed === opt.val ? opt.activeBorder : "#2a2a2a"}`, color: form.confirmed === opt.val ? opt.color : "#555" }}>
-                {opt.label}
-              </button>
-            ))}
-          </div>
-        </div>
-
-        <div>
-          <label style={lbl}>Notes</label>
-          <input style={inp} value={form.notes} onChange={e => set("notes", e.target.value)} placeholder="Any notes..." />
-        </div>
-
-        <div style={{ background: "#212121", borderRadius: 18, padding: 16, border: "1px solid #2a2a2a" }}>
-          <p style={{ fontSize: 12, fontWeight: 600, color: "#666", marginBottom: 14, textTransform: "uppercase", letterSpacing: "0.06em" }}>Payment</p>
-          <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
             <div>
-              <label style={lbl}>Total Fee (₹)</label>
-              <input style={{ ...inp, background: "#1a1a1a" }} type="number" value={form.fee} onChange={e => set("fee", e.target.value)} placeholder="15000" />
+              <label style={lbl}>Date</label>
+              <input style={inp} type="date" value={form.date} onChange={e => set("date", e.target.value)} />
             </div>
             <div>
-              <label style={lbl}>Amount Received (₹)</label>
-              <input style={{ ...inp, background: "#1a1a1a" }} type="number" value={form.paid} onChange={e => set("paid", e.target.value)} placeholder="0" />
+              <label style={lbl}>Type</label>
+              <select style={inp} value={form.type} onChange={e => set("type", e.target.value)}>
+                {GIG_TYPES.map(t => <option key={t}>{t}</option>)}
+              </select>
             </div>
           </div>
-          {form.fee > 0 && (
-            <div style={{ marginTop: 14, paddingTop: 14, borderTop: "1px solid #2a2a2a" }}>
-              <div style={{ display: "flex", justifyContent: "space-between", fontSize: 14 }}>
-                <span style={{ color: "#666" }}>Balance Due</span>
-                <span style={{ fontWeight: 700, color: pending > 0 ? "#e07b3a" : "#5bb974" }}>{fmt(pending)}</span>
+
+          {/* Slot picker */}
+          <div>
+            <label style={lbl}>Time Slot</label>
+            <div style={{ display: "flex", gap: 10 }}>
+              {[
+                { val: "Morning", icon: "🌅", color: "#f5c842", activeBg: "rgba(245,200,66,0.08)", activeBorder: "rgba(245,200,66,0.3)" },
+                { val: "Evening", icon: "🌙", color: "#b06bff", activeBg: "rgba(176,107,255,0.08)", activeBorder: "rgba(176,107,255,0.3)" },
+                { val: "", icon: "—", color: "#555", activeBg: "#212121", activeBorder: "#444" },
+              ].map(opt => (
+                <button key={opt.val} className="tap" onClick={() => set("slot", opt.val)}
+                  style={{ flex: 1, padding: "10px 8px", borderRadius: 12, fontSize: 12, fontWeight: 600, background: form.slot === opt.val ? opt.activeBg : "#181818", border: `1px solid ${form.slot === opt.val ? opt.activeBorder : "#2a2a2a"}`, color: form.slot === opt.val ? opt.color : "#444", display: "flex", alignItems: "center", justifyContent: "center", gap: 5 }}>
+                  <span style={{ fontSize: 16 }}>{opt.icon}</span>
+                  {opt.val || "None"}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div>
+            <label style={lbl}>Gig Confirmation</label>
+            <div style={{ display: "flex", gap: 10 }}>
+              {[
+                { val: true, label: "✓  Confirmed", color: "#5bb974", activeBg: "#0f2218", activeBorder: "#1e4d30" },
+                { val: false, label: "?  Unconfirmed", color: "#a78bfa", activeBg: "#1e1828", activeBorder: "#3b2f6b" },
+              ].map(opt => (
+                <button key={String(opt.val)} className="tap" onClick={() => set("confirmed", opt.val)}
+                  style={{ flex: 1, padding: 12, borderRadius: 12, fontSize: 13, fontWeight: 600, background: form.confirmed === opt.val ? opt.activeBg : "#212121", border: `1px solid ${form.confirmed === opt.val ? opt.activeBorder : "#2a2a2a"}`, color: form.confirmed === opt.val ? opt.color : "#555" }}>
+                  {opt.label}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div>
+            <label style={lbl}>Notes</label>
+            <input style={inp} value={form.notes} onChange={e => set("notes", e.target.value)} placeholder="Any notes..." />
+          </div>
+
+          <div style={{ background: "#212121", borderRadius: 18, padding: 16, border: "1px solid #2a2a2a" }}>
+            <p style={{ fontSize: 12, fontWeight: 600, color: "#666", marginBottom: 14, textTransform: "uppercase", letterSpacing: "0.06em" }}>Payment</p>
+            <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+              <div>
+                <label style={lbl}>Total Fee (₹)</label>
+                <input style={{ ...inp, background: "#1a1a1a" }} type="number" value={form.fee} onChange={e => set("fee", e.target.value)} placeholder="15000" />
               </div>
-              <div style={{ height: 4, background: "#2a2a2a", borderRadius: 2, marginTop: 10 }}>
-                <div style={{ height: 4, width: `${Math.min(100, +form.fee > 0 ? (+form.paid / +form.fee) * 100 : 0)}%`, background: "#5bb974", borderRadius: 2 }} />
+              <div>
+                <label style={lbl}>Amount Received (₹)</label>
+                <input style={{ ...inp, background: "#1a1a1a" }} type="number" value={form.paid} onChange={e => set("paid", e.target.value)} placeholder="0" />
               </div>
             </div>
-          )}
-        </div>
+            {form.fee > 0 && (
+              <div style={{ marginTop: 14, paddingTop: 14, borderTop: "1px solid #2a2a2a" }}>
+                <div style={{ display: "flex", justifyContent: "space-between", fontSize: 14 }}>
+                  <span style={{ color: "#666" }}>Balance Due</span>
+                  <span style={{ fontWeight: 700, color: pending > 0 ? "#e07b3a" : "#5bb974" }}>{fmt(pending)}</span>
+                </div>
+                <div style={{ height: 4, background: "#2a2a2a", borderRadius: 2, marginTop: 10 }}>
+                  <div style={{ height: 4, width: `${Math.min(100, +form.fee > 0 ? (+form.paid / +form.fee) * 100 : 0)}%`, background: "#5bb974", borderRadius: 2 }} />
+                </div>
+              </div>
+            )}
+          </div>
 
-        <button className="tap" onClick={handleSave} disabled={saving}
-          style={{ background: "#c98a3a", border: "none", color: "#fff", borderRadius: 16, padding: 17, fontSize: 16, fontWeight: 600, marginTop: 4, marginBottom: 16, opacity: saving ? 0.7 : 1 }}>
-          {saving ? "Saving..." : form._id ? "Save Changes" : "Add Gig"}
-        </button>
+          <button className="tap" onClick={handleSave} disabled={saving}
+            style={{ background: "#c98a3a", border: "none", color: "#fff", borderRadius: 16, padding: 17, fontSize: 16, fontWeight: 600, marginTop: 4, marginBottom: 16, opacity: saving ? 0.7 : 1 }}>
+            {saving ? "Saving..." : form._id ? "Save Changes" : "Add Gig"}
+          </button>
+        </div>
       </div>
-    </div>
+    </>
   );
 }
 
