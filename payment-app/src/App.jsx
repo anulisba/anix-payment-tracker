@@ -133,6 +133,183 @@ function SlotPickerModal({ dateStr, onSelect, onClose }) {
   );
 }
 
+// ─── Day Modal ─────────────────────────────────────────────────
+function DayModal({ day, year, month, gigs, onClose, onGigTap, onAddGig }) {
+  const dateDisplay = new Date(year, month, day).toLocaleDateString("en-IN", {
+    weekday: "long", day: "numeric", month: "long"
+  });
+
+  const slots = gigs.map(g => g.slot).filter(Boolean);
+  const hasMorning = slots.includes("Morning");
+  const hasEvening = slots.includes("Evening");
+  const canAddMorning = !hasMorning;
+  const canAddEvening = !hasEvening;
+  // Show add-slot CTA only when exactly 1 gig exists and it has a slot, leaving the other free
+  const showAddSlot = gigs.length === 1 && gigs[0].slot && (canAddMorning || canAddEvening);
+  const otherSlot = canAddMorning ? "Morning" : "Evening";
+  const otherSlotIcon = otherSlot === "Morning" ? "🌅" : "🌙";
+  const otherSlotColor = otherSlot === "Morning" ? "#f5c842" : "#b06bff";
+  const otherSlotActiveBg = otherSlot === "Morning" ? "rgba(245,200,66,0.08)" : "rgba(176,107,255,0.08)";
+  const otherSlotBorder = otherSlot === "Morning" ? "rgba(245,200,66,0.25)" : "rgba(176,107,255,0.25)";
+
+  function handleAddOtherSlot() {
+    const iso = `${year}-${String(month + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
+    onClose();
+    onAddGig(iso, otherSlot);
+  }
+
+  return (
+    <div
+      style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.75)", zIndex: 200, display: "flex", alignItems: "flex-end" }}
+      onClick={onClose}
+    >
+      <div
+        onClick={e => e.stopPropagation()}
+        style={{ background: "#1a1a1a", borderRadius: "22px 22px 0 0", padding: "8px 16px 40px", width: "100%", border: "1px solid #2a2a2a", boxShadow: "0 -8px 40px rgba(0,0,0,0.5)" }}
+      >
+        {/* Drag handle */}
+        <div style={{ width: 40, height: 4, background: "#333", borderRadius: 2, margin: "12px auto 20px" }} />
+
+        {/* Date header */}
+        <p style={{ fontSize: 11, color: "#555", textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 4, textAlign: "center" }}>
+          {dateDisplay}
+        </p>
+        <p style={{ fontSize: 13, color: "#666", textAlign: "center", marginBottom: 22 }}>
+          {gigs.length} gig{gigs.length !== 1 ? "s" : ""} booked
+        </p>
+
+        {/* Existing gig(s) */}
+        <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+          {gigs.map(g => {
+            const tc = TYPE_COLORS[g.type] || TYPE_COLORS["Other"];
+            const status = payStatus(g);
+            const payColor = status === "paid" ? "#5bb974" : status === "partial" ? "#e07b3a" : "#e05c5c";
+            const payLabel = status === "paid" ? "Paid" : status === "partial" ? `${fmt(g.fee - g.paid)} due` : "Unpaid";
+
+            return (
+              <button
+                key={g._id}
+                className="tap"
+                onClick={() => { onClose(); onGigTap(g); }}
+                style={{
+                  width: "100%", background: tc.bg, border: `1px solid ${tc.border}`,
+                  borderRadius: 16, padding: "14px 16px", textAlign: "left",
+                  display: "flex", alignItems: "center", gap: 12
+                }}
+              >
+                {/* Slot icon */}
+                {g.slot && (
+                  <div style={{
+                    width: 40, height: 40, borderRadius: 12, flexShrink: 0,
+                    background: g.slot === "Morning" ? "rgba(245,200,66,0.1)" : "rgba(176,107,255,0.1)",
+                    border: `1px solid ${g.slot === "Morning" ? "rgba(245,200,66,0.25)" : "rgba(176,107,255,0.25)"}`,
+                    display: "flex", alignItems: "center", justifyContent: "center", fontSize: 20
+                  }}>
+                    {g.slot === "Morning" ? "🌅" : "🌙"}
+                  </div>
+                )}
+
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 4 }}>
+                    {g.slot && (
+                      <span style={{
+                        fontSize: 10, fontWeight: 700,
+                        color: g.slot === "Morning" ? "#f5c842" : "#b06bff",
+                        textTransform: "uppercase", letterSpacing: "0.06em"
+                      }}>
+                        {g.slot}
+                      </span>
+                    )}
+                    <span style={{ fontSize: 9, color: "#333" }}>●</span>
+                    <span style={{ fontSize: 10, color: g.confirmed ? "#5bb974" : "#a78bfa" }}>
+                      {g.confirmed ? "Confirmed" : "Unconfirmed"}
+                    </span>
+                  </div>
+                  <p style={{ fontSize: 14, fontWeight: 700, color: "#e8e8e6", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                    {g.client}
+                  </p>
+                  <p style={{ fontSize: 11, color: "#666", marginTop: 2 }}>{g.type}</p>
+                </div>
+
+                <div style={{ textAlign: "right", flexShrink: 0 }}>
+                  <p style={{ fontSize: 15, fontWeight: 700, color: "#e8e8e6", marginBottom: 4 }}>{fmt(g.fee)}</p>
+                  <span style={{
+                    fontSize: 10, fontWeight: 700, color: payColor,
+                    background: status === "paid" ? "#1a2e1e" : status === "partial" ? "#2a1e10" : "#2a1010",
+                    padding: "2px 8px", borderRadius: 6
+                  }}>{payLabel}</span>
+                </div>
+
+                {/* Chevron */}
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#444" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}>
+                  <path d="M9 18l6-6-6-6" />
+                </svg>
+              </button>
+            );
+          })}
+        </div>
+
+        {/* Add other slot CTA */}
+        {showAddSlot && (
+          <>
+            <div style={{ display: "flex", alignItems: "center", gap: 10, margin: "18px 0 14px" }}>
+              <div style={{ flex: 1, height: 1, background: "#222" }} />
+              <span style={{ fontSize: 10, color: "#444", textTransform: "uppercase", letterSpacing: "0.08em" }}>Available Slot</span>
+              <div style={{ flex: 1, height: 1, background: "#222" }} />
+            </div>
+            <button
+              className="tap"
+              onClick={handleAddOtherSlot}
+              style={{
+                width: "100%", background: otherSlotActiveBg,
+                border: `1px solid ${otherSlotBorder}`,
+                borderRadius: 16, padding: "16px 20px",
+                display: "flex", alignItems: "center", gap: 14, textAlign: "left"
+              }}
+            >
+              <div style={{
+                width: 40, height: 40, borderRadius: 12,
+                background: "rgba(255,255,255,0.04)",
+                border: `1px solid ${otherSlotBorder}`,
+                display: "flex", alignItems: "center", justifyContent: "center", fontSize: 20, flexShrink: 0
+              }}>
+                {otherSlotIcon}
+              </div>
+              <div style={{ flex: 1 }}>
+                <p style={{ fontSize: 14, fontWeight: 700, color: otherSlotColor }}>
+                  Add {otherSlot} Gig
+                </p>
+                <p style={{ fontSize: 11, color: "#555", marginTop: 2 }}>
+                  {otherSlot === "Morning" ? "Before 12 PM · slot is free" : "After 12 PM · slot is free"}
+                </p>
+              </div>
+              <div style={{
+                width: 28, height: 28, borderRadius: 8,
+                background: otherSlotActiveBg, border: `1px solid ${otherSlotBorder}`,
+                display: "flex", alignItems: "center", justifyContent: "center",
+                color: otherSlotColor, fontSize: 18, fontWeight: 600, flexShrink: 0
+              }}>+</div>
+            </button>
+          </>
+        )}
+
+        {/* Close */}
+        <button
+          className="tap"
+          onClick={onClose}
+          style={{
+            marginTop: 14, width: "100%", background: "none",
+            border: "1px solid #252525", color: "#444",
+            borderRadius: 14, padding: 14, fontSize: 14
+          }}
+        >
+          Close
+        </button>
+      </div>
+    </div>
+  );
+}
+
 // ─── Main App ──────────────────────────────────────────────────
 export default function App() {
   const [gigs, setGigs] = useState([]);
@@ -219,10 +396,16 @@ export default function App() {
     } catch { showToast("Failed to delete", "error"); }
   }
 
-  // Calendar: open slot picker first, then form
+  // ✅ FIX 1: openCalendarAdd now correctly triggers the SlotPickerModal
   function openCalendarAdd(dateStr) {
     setSlotPicker(dateStr);
   }
+
+  // ✅ FIX 2: openCalendarAddWithSlot is now defined — skips slot picker, goes straight to form
+  function openCalendarAddWithSlot(dateStr, slot) {
+    setScreen({ type: "form", gig: { date: dateStr, slot } });
+  }
+
   function handleSlotSelect(slot) {
     const dateStr = slotPicker;
     setSlotPicker(null);
@@ -282,7 +465,14 @@ export default function App() {
         {loading ? <Spinner /> : <>
           {tab === "home" && <HomeScreen stats={stats} recentGigs={[...gigs].sort((a, b) => new Date(b.date) - new Date(a.date)).slice(0, 5)} onGigTap={g => setScreen({ type: "detail", gig: g })} onViewAll={() => setTab("gigs")} />}
           {tab === "gigs" && <GigsScreen gigs={sortedGigs} months={months} filterMonth={filterMonth} setFilterMonth={setFilterMonth} onGigTap={g => setScreen({ type: "detail", gig: g })} />}
-          {tab === "calendar" && <CalendarScreen gigs={gigs} onGigTap={g => setScreen({ type: "detail", gig: g })} onAddGig={openCalendarAdd} />}
+          {tab === "calendar" && (
+            <CalendarScreen
+              gigs={gigs}
+              onGigTap={g => setScreen({ type: "detail", gig: g })}
+              onAddGig={openCalendarAdd}
+              onAddGigWithSlot={openCalendarAddWithSlot}
+            />
+          )}
           {tab === "stats" && <StatsScreen stats={stats} />}
           {tab === "expense" && <ExpenseScreen expenses={expenses} onExpenseTap={e => setScreen({ type: "expenseDetail", expense: e })} onAdd={() => setScreen({ type: "expenseForm", expense: {} })} />}
         </>}
@@ -320,11 +510,11 @@ export default function App() {
 }
 
 // ─── Calendar Screen ───────────────────────────────────────────
-function CalendarScreen({ gigs, onGigTap, onAddGig }) {
+function CalendarScreen({ gigs, onGigTap, onAddGig, onAddGigWithSlot }) {
   const today = new Date();
   const [year, setYear] = useState(today.getFullYear());
   const [month, setMonth] = useState(today.getMonth());
-  const [dayModal, setDayModal] = useState(null);
+  const [dayModal, setDayModal] = useState(null); // { day, gigs }
 
   const firstDayOfWeek = new Date(year, month, 1).getDay();
   const daysInMonth = new Date(year, month + 1, 0).getDate();
@@ -351,11 +541,11 @@ function CalendarScreen({ gigs, onGigTap, onAddGig }) {
   function handleDayTap(day) {
     const dayGigs = gigsByDay[day] || [];
     if (dayGigs.length === 0) {
+      // No gigs → open slot picker
       const iso = `${year}-${String(month + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
-      onAddGig(iso); // triggers slot picker
-    } else if (dayGigs.length === 1) {
-      onGigTap(dayGigs[0]);
+      onAddGig(iso);
     } else {
+      // 1 or more gigs → always show DayModal
       setDayModal({ day, gigs: dayGigs });
     }
   }
@@ -365,38 +555,24 @@ function CalendarScreen({ gigs, onGigTap, onAddGig }) {
       <AppHeader title="Payment Tracker" subtitle="Welcome back Anix 👋" />
       <div style={{ padding: "18px 16px 0" }}>
 
+        {/* Day Modal */}
         {dayModal && (
-          <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.7)", zIndex: 200, display: "flex", alignItems: "flex-end" }}
-            onClick={() => setDayModal(null)}>
-            <div onClick={e => e.stopPropagation()}
-              style={{ background: "#1e1e1e", borderRadius: "20px 20px 0 0", padding: "20px 16px 32px", width: "100%", border: "1px solid #2a2a2a" }}>
-              <div style={{ width: 40, height: 4, background: "#333", borderRadius: 2, margin: "0 auto 18px" }} />
-              <p style={{ fontSize: 13, color: "#666", marginBottom: 14 }}>
-                {new Date(year, month, dayModal.day).toLocaleDateString("en-IN", { weekday: "long", day: "numeric", month: "long" })}
-              </p>
-              <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-                {dayModal.gigs.map(g => {
-                  const tc = TYPE_COLORS[g.type] || TYPE_COLORS["Other"];
-                  return (
-                    <button key={g._id} className="tap"
-                      onClick={() => { setDayModal(null); onGigTap(g); }}
-                      style={{ background: tc.bg, border: `1px solid ${tc.border}`, borderRadius: 14, padding: "12px 16px", display: "flex", justifyContent: "space-between", alignItems: "center", textAlign: "left" }}>
-                      <div>
-                        <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 3 }}>
-                          <p style={{ fontSize: 14, fontWeight: 600, color: "#e8e8e6" }}>{g.client}</p>
-                          {g.slot && <SlotBadge slot={g.slot} size="xs" />}
-                        </div>
-                        <p style={{ fontSize: 11, color: tc.text }}>{g.type} · {g.confirmed ? "Confirmed" : "Unconfirmed"}</p>
-                      </div>
-                      <div style={{ textAlign: "right" }}>
-                        <p style={{ fontSize: 13, fontWeight: 600, color: "#e8e8e6" }}>{fmt(g.fee)}</p>
-                      </div>
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
-          </div>
+          <DayModal
+            day={dayModal.day}
+            year={year}
+            month={month}
+            gigs={dayModal.gigs}
+            onClose={() => setDayModal(null)}
+            onGigTap={onGigTap}
+            onAddGig={(iso, slot) => {
+              setDayModal(null);
+              if (slot) {
+                onAddGigWithSlot(iso, slot);
+              } else {
+                onAddGig(iso);
+              }
+            }}
+          />
         )}
 
         {/* Month nav */}
@@ -604,7 +780,6 @@ function StatsScreen({ stats }) {
       <div style={{ padding: "18px 16px 0" }}>
         <h1 style={{ fontSize: 24, fontWeight: 700, marginBottom: 20 }}>Stats</h1>
 
-        {/* Top summary row */}
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 20 }}>
           {[
             { label: "Total Received", val: fmt(stats.totalEarned), color: "#5bb974" },
@@ -619,7 +794,6 @@ function StatsScreen({ stats }) {
           ))}
         </div>
 
-        {/* Section toggle */}
         <div style={{ display: "flex", gap: 8, marginBottom: 20 }}>
           {[{ id: "income", label: "Income" }, { id: "expenses", label: "Expenses" }].map(s => (
             <button key={s.id} className="tap" onClick={() => setActiveSection(s.id)}
@@ -681,7 +855,6 @@ function StatsScreen({ stats }) {
                   <div style={{ height: 4, background: "#2a2a2a", borderRadius: 2, marginBottom: 12 }}>
                     <div style={{ height: 4, width: `${(m.total / maxExpense) * 100}%`, background: "#e05c7a", borderRadius: 2 }} />
                   </div>
-                  {/* Category breakdown */}
                   <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
                     {Object.entries(m.byCategory || {}).sort(([, a], [, b]) => b - a).map(([cat, amt]) => {
                       const cc = EXPENSE_CATEGORY_COLORS[cat] || EXPENSE_CATEGORY_COLORS["Other"];
@@ -720,7 +893,6 @@ function ExpenseScreen({ expenses, onExpenseTap, onAdd }) {
 
   const totalVisible = visible.reduce((s, e) => s + e.amount, 0);
 
-  // Category totals for visible
   const catTotals = {};
   visible.forEach(e => { catTotals[e.category] = (catTotals[e.category] || 0) + e.amount; });
   const topCat = Object.entries(catTotals).sort(([, a], [, b]) => b - a)[0];
@@ -737,7 +909,6 @@ function ExpenseScreen({ expenses, onExpenseTap, onAdd }) {
           </button>
         </div>
 
-        {/* Summary card */}
         {visible.length > 0 && (
           <div style={{ background: "#212121", borderRadius: 18, padding: "16px 18px", marginBottom: 16, border: "1px solid #2a2a2a" }}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
@@ -760,7 +931,6 @@ function ExpenseScreen({ expenses, onExpenseTap, onAdd }) {
           </div>
         )}
 
-        {/* Month filter */}
         <div className="chip-scroll" style={{ marginBottom: 10 }}>
           {[{ key: "all", label: "All" }, ...months.map(m => ({ key: m, label: monthLabel(m).split(" ")[0] + " '" + monthLabel(m).split(" ")[1].slice(2) }))].map(({ key, label }) => (
             <button key={key} className="tap" onClick={() => setFilterMonth(key)}
@@ -770,7 +940,6 @@ function ExpenseScreen({ expenses, onExpenseTap, onAdd }) {
           ))}
         </div>
 
-        {/* Category filter */}
         <div className="chip-scroll" style={{ marginBottom: 16 }}>
           {[{ key: "all", label: "All Categories" }, ...EXPENSE_CATEGORIES.map(c => ({ key: c, label: `${EXPENSE_CATEGORY_COLORS[c]?.icon} ${c}` }))].map(({ key, label }) => (
             <button key={key} className="tap" onClick={() => setFilterCat(key)}
@@ -910,7 +1079,6 @@ function ExpenseForm({ expense, onSave, onBack }) {
             </div>
           </div>
 
-          {/* Category quick-pick */}
           <div>
             <label style={lbl}>Quick Category</label>
             <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
