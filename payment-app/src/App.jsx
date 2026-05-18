@@ -551,7 +551,7 @@ function CalendarScreen({ gigs, onGigTap, onAddGig, onAddGigWithSlot }) {
   }
 
   return (
-    <>
+    <div style={{ paddingTop: "50px" }}>
       <AppHeader title="Payment Tracker" subtitle="Welcome back Anix 👋" />
       <div style={{ padding: "18px 16px 0" }}>
 
@@ -694,7 +694,7 @@ function CalendarScreen({ gigs, onGigTap, onAddGig, onAddGigWithSlot }) {
           </div>
         )}
       </div>
-    </>
+    </div>
   );
 }
 
@@ -702,7 +702,7 @@ function CalendarScreen({ gigs, onGigTap, onAddGig, onAddGigWithSlot }) {
 function HomeScreen({ stats, recentGigs, onGigTap, onViewAll }) {
   if (!stats) return <Spinner />;
   return (
-    <div>
+    <div style={{ paddingTop: "50px" }}>
       <AppHeader title="Payment Tracker" subtitle="Welcome back Anix 👋" />
       <div style={{ padding: "16px 16px 0" }}>
         <div style={{ background: "#212121", borderRadius: 20, padding: 20, marginBottom: 12, border: "1px solid #2a2a2a" }}>
@@ -746,7 +746,7 @@ function HomeScreen({ stats, recentGigs, onGigTap, onViewAll }) {
 // ─── Gigs Screen ───────────────────────────────────────────────
 function GigsScreen({ gigs, months, filterMonth, setFilterMonth, onGigTap }) {
   return (
-    <>
+    <div style={{ paddingTop: "50px" }}>
       <AppHeader title="Payment Tracker" subtitle="Welcome back Anix 👋" />
       <div style={{ padding: "18px 16px 0" }}>
         <h1 style={{ fontSize: 24, fontWeight: 700, marginBottom: 16 }}>All Gigs</h1>
@@ -763,7 +763,7 @@ function GigsScreen({ gigs, months, filterMonth, setFilterMonth, onGigTap }) {
           : <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>{gigs.map(g => <GigCard key={g._id} gig={g} onTap={onGigTap} />)}</div>
         }
       </div>
-    </>
+    </div>
   );
 }
 
@@ -775,7 +775,7 @@ function StatsScreen({ stats }) {
   const maxExpense = Math.max(...(stats.monthlyExpenses || []).map(m => m.total), 1);
 
   return (
-    <>
+    <div style={{ paddingTop: "50px" }}>
       <AppHeader title="Payment Tracker" subtitle="Welcome back Anix 👋" />
       <div style={{ padding: "18px 16px 0" }}>
         <h1 style={{ fontSize: 24, fontWeight: 700, marginBottom: 20 }}>Stats</h1>
@@ -876,7 +876,7 @@ function StatsScreen({ stats }) {
           </>
         )}
       </div>
-    </>
+    </div>
   );
 }
 
@@ -898,7 +898,7 @@ function ExpenseScreen({ expenses, onExpenseTap, onAdd }) {
   const topCat = Object.entries(catTotals).sort(([, a], [, b]) => b - a)[0];
 
   return (
-    <>
+    <div style={{ paddingTop: "50px" }}>
       <AppHeader title="Payment Tracker" subtitle="Welcome back Anix 👋" />
       <div style={{ padding: "18px 16px 0" }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
@@ -956,7 +956,7 @@ function ExpenseScreen({ expenses, onExpenseTap, onAdd }) {
           </div>
         }
       </div>
-    </>
+    </div>
   );
 }
 
@@ -993,8 +993,7 @@ function ExpenseDetail({ expense, onBack, onEdit, onDelete }) {
   }
 
   return (
-    <>
-      <AppHeader title="Payment Tracker" subtitle="Welcome back Anix 👋" />
+    <div style={{ paddingTop: "50px" }}>
       <div style={{ padding: "18px 16px 0" }}>
         <button className="tap" onClick={onBack} style={{ background: "none", border: "none", color: "#c98a3a", fontSize: 14, padding: 0, marginBottom: 24 }}>← Back</button>
         <div style={{ display: "flex", alignItems: "center", gap: 14, marginBottom: 20 }}>
@@ -1025,7 +1024,7 @@ function ExpenseDetail({ expense, onBack, onEdit, onDelete }) {
           </button>
         </div>
       </div>
-    </>
+    </div>
   );
 }
 
@@ -1056,8 +1055,7 @@ function ExpenseForm({ expense, onSave, onBack }) {
   const lbl = { display: "block", fontSize: 12, color: "#666", marginBottom: 7, fontWeight: 500 };
 
   return (
-    <>
-      <AppHeader title="Payment Tracker" subtitle="Welcome back Anix 👋" />
+    <div style={{ paddingTop: "50px" }}>
       <div style={{ padding: "18px 16px 0" }}>
         <button className="tap" onClick={onBack} style={{ background: "none", border: "none", color: "#c98a3a", fontSize: 14, padding: 0, marginBottom: 24 }}>← Back</button>
         <h1 style={{ fontSize: 22, fontWeight: 700, marginBottom: 24 }}>{form._id ? "Edit Expense" : "New Expense"}</h1>
@@ -1109,7 +1107,7 @@ function ExpenseForm({ expense, onSave, onBack }) {
           </button>
         </div>
       </div>
-    </>
+    </div>
   );
 }
 
@@ -1155,8 +1153,7 @@ function GigDetail({ gig, onBack, onEdit, onDelete, onToggleConfirm }) {
   }
 
   return (
-    <>
-      <AppHeader title="Payment Tracker" subtitle="Welcome back Anix 👋" />
+    <div style={{ paddingTop: "50px" }}>
       <div style={{ padding: "18px 16px 0" }}>
         <button className="tap" onClick={onBack} style={{ background: "none", border: "none", color: "#c98a3a", fontSize: 14, padding: 0, marginBottom: 24 }}>← Back</button>
         <div style={{ marginBottom: 20 }}>
@@ -1219,7 +1216,7 @@ function GigDetail({ gig, onBack, onEdit, onDelete, onToggleConfirm }) {
           </button>
         </div>
       </div>
-    </>
+    </div>
   );
 }
 
@@ -1254,7 +1251,7 @@ function GigForm({ gig, onSave, onBack }) {
   const lbl = { display: "block", fontSize: 12, color: "#666", marginBottom: 7, fontWeight: 500 };
 
   return (
-    <>
+    <div style={{ paddingTop: "50px" }}>
       <AppHeader title="Payment Tracker" subtitle="Welcome back Anix 👋" />
       <div style={{ padding: "18px 16px 0" }}>
         <button className="tap" onClick={onBack} style={{ background: "none", border: "none", color: "#c98a3a", fontSize: 14, padding: 0, marginBottom: 24 }}>← Back</button>
@@ -1346,7 +1343,7 @@ function GigForm({ gig, onSave, onBack }) {
           </button>
         </div>
       </div>
-    </>
+    </div>
   );
 }
 
